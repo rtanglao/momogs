@@ -1,8 +1,10 @@
 #!/usr/bin/env ruby
+require 'rubygems'
 require 'json'
 require 'net/http'
 require 'pp'
-require 'Time'
+require 'time'
+require 'date'
 
 def getResponse(url)
 
