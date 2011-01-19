@@ -117,20 +117,7 @@ while true
 
           if (reply_created_time <=> metrics_start) == 1 &&
              (reply_created_time <=> metrics_stop) == -1
-            #puts "Reply created by:#{author} at:#{reply_created_time} topic:#{topic_id} reply:#{reply_id} IN Time Window"
-            #reply_url = topic_url+"#reply_"+reply["id"].to_s
             topic_text = topic_text + " " + reply["content"]            
-            #if repliesByUser.has_key?(author)
-            #  repliesByUser[author] += 1
-            #else
-            #  repliesByUser[author] = 1
-            #end
-            #if author == "Roland Tanglao"
-            #  printf(STDERR, "author is roland\n")
-            #  roland_replies += 1
-            #else
-            #  non_roland_replies += 1
-            #end
           else
             printf(STDERR,"Reply created by:%s at:%s topic:%s reply:%s NOT IN Time Window\n",author, reply_created_time, topic_id, reply_id)
           end
@@ -148,16 +135,33 @@ while true
       printf(STDERR, "\nEND*** of opencalais keywords for topic:%s\n", topic_url)
       keywords.each do |keyword_array|
         keyword_array.each do |keyword|
-          printf(STDERR, "*** opencalais individual keyword:%s\n", keyword.to_s)
-          tag_is_stop_word = false
-          STOP_WORDS.each do|stop_word|
-            if stop_word == keyword.to_s
-              tag_is_stop_word = true
-              break
+          if !keyword.respond_to?(:chomp, include_private = false)
+            keyword.each do |k|
+              printf(STDERR, "*** opencalais individual keyword:%s\n", k)
+              tag_is_stop_word = false
+              STOP_WORDS.each do|stop_word|
+                if stop_word == k
+                  tag_is_stop_word = true
+                  break
+                end
+              end
+              if !tag_is_stop_word && k.length != 0 && !k.include?("http")
+                printf("keyword:%s,url:%s\n", k, topic_url)
+              end
+            end          
+          else 
+            printf(STDERR, "*** opencalais individual keyword:%s\n", keyword.to_s)
+            tag_is_stop_word = false
+            STOP_WORDS.each do|stop_word|
+              if stop_word == keyword.to_s
+                tag_is_stop_word = true
+                break
+              end
             end
           end
           if !tag_is_stop_word && keyword.to_s.length != 0 && !keyword.to_s.include?("http")
-            printf("keyword:%s,url:%s\n", keyword.to_s, topic_url)
+            printf(STDERR, "*** opencalas NOT adding individual keyword since it's a string\n")
+            # printf("keyword:%s,url:%s\n", keyword.to_s, topic_url)
           end
         end
       end
@@ -167,10 +171,7 @@ while true
     break
   end
 end
-#puts "Number of replies created by Roland: #{roland_replies} non Roland replies:#{non_roland_replies}\n"
-#repliesByUser.sort{|author,numReplies| author[1]<=>numReplies[1]}.each { |elem|
-#  puts "#{elem[1]}, #{elem[0]}"
-#}
+
 
 
 
