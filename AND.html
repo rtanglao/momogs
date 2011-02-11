@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js"></script>
+<script type="application/javascript;version=1.8">
+// based on original code by protz aka Jonathan Protzenko.
+// http://www.xulforum.org/go_code
+// https://gist.github.com/550766 is where I got the original code from :-) !
+// Thanks Protz!
+   if (typeof console === 'undefined' || !console.log) {
+      var console = { log: function () {}};
+    };
+
+    $(window).load(function () {
+      var urlParams = {};
+      (function () {
+        var e,
+          a = /\+/g,  // Regex for replacing addition symbol with a space
+          r = /([^&=]+)=?([^&]*)/g,
+          d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
+          q = window.location.search.substring(1);
+
+       while (e = r.exec(q))
+         urlParams[d(e[1])] = d(e[2]);
+       })();
+
+      $.ajaxSetup({
+        cache: false // turn off AJAX caching so you actually get the top 5!
+      });
+
+      var topics = {};
+      // -- Display routines
+      function output() {
+        let sorted_topics = [t for each ([, t] in Iterator(topics))];
+        sorted_topics.sort(function (t1, t2) {
+          return (new Date(t1.replies_today)) < (new Date(t2.replies_today));
+        });
+        let $ol = $(".d1").find("ol");
+        number_hits = 0;
+        $.each(sorted_topics, function (topic) {
+          if (topic.containsAllKeywords) {
+            $ol.append(
+              $("<li class='topic_"+topic.id+"'></li").append(
+                $("<a href='"+topic.at_sfn+"'>"+topic.subject+"</a>")
+              ).append(
+                $("<span> (<span class='r'>"+topic.replies_today+"</span> replies today)</span>")
+              )
+            );
+            number_hits++;
+          }
+          if (number_hits == 24) // display 24 hits
+            return false;
+        });
+        $(".status").text("");
+      }
+
+      // -- JSON stuff
+
+      var today = (new Date());
+      function tooOld(date) {
+        let d = new Date(date);
+        return ((today - d) > 6 * 31 * 24 * 3600 * 1000); // 6 months hardcoded kludge FIXME!
+      }
+
+      var expected = 1; // for the main loop
+
+      function top() {
+        expected--;
+        if (expected == 0) {
+          output();
+        } else if (expected < 0) {
+          console.log("Errrrrrrrrror");
+        }
+      }
+
+      var total = 0;
+
+      function contentContainsAllKeywordsP(content) {
+        content = content.toLowerCase();
+        for (var i in urlParams) {
+          keyword = urlParams[i].toLowerCase();
+          if (content.indexOf(keyword) != -1) {
+            console.log("keyword:"+keyword+" found in:"+content);
+          }
+          else {
+            console.log("keyword:"+keyword+" NOT found in:"+content);
+            return false;
+          }
+        }
+        return true;
+      };      
+
+      function getTopics(page){
+        var url =
+          "http://api.getsatisfaction.com/products/mozilla_thunderbird/topics.json?sort=recently_active&page="
+          + page + "&limit=30&callback=?";
+        $.getJSON(
+          url,
+          function _getTopics_loop (gsjs) { // gsjs is the JSON object from getsatisfaction
+            var keep_going = true;
+
+            // iterate on all topics
+            $.each(gsjs.data, function(i, topic) {
+              // we've been too far, and we ended up in some other day's topics
+              if (tooOld(topic.last_active_at)) {
+                keep_going = false;
+                return false; // break
+              }
+              topic.containsAllKeywords = false;
+              var topic_text = topic.subject + " " + topic.content ;
+              if (contentContainsAllKeywordsP(topic_text)) {
+                topic.containsAllKeywords = true;
+              }
+              topic.replies_today = 0;
+              topics[topic.id] = topic;
+              if (topic.reply_count > 0) {
+                expected++;
+                total++;
+                // better UI feedback that way
+                setTimeout(function () { getReplies(topic, topic.reply_count, 1); },500);
+              }
+            });
+
+            if (keep_going) {
+              getTopics(page + 1);
+            } else {
+              console.log("We're currently expecting "+total+" topics to be examined");
+              top();
+            }
+        });
+      };
+
+      var totalReplies = 0;
+
+      function getReplies(topic, remaining, page) {
+        // update the UI
+        if (page == 1) {
+          total--;
+          $(".status").text("Still "+total+" topics to examine...");
+        } else if (total == 0) {
+          $(".status").text("So far, "+totalReplies+" replies examined...");
+        }
+
+        var url =
+          "http://api.getsatisfaction.com/topics/" +topic.id +
+          "/replies.json?sort=recently_created&page=" + page + "&limit=30&callback=?";
+        $.getJSON(
+          url,
+          function _getReplies_loop (gsjs) { //gsjs is the JSON object from getsatisfaction
+            var keep_going = true;
+
+            // iterate on all replies
+            $.each(gsjs.data, function(i, reply) {
+              totalReplies++;
+              if (tooOld(reply.created_at)) {
+                keep_going = false;
+                return false;
+              } else {
+                var reply_text = reply.content ;
+                if (contentContainsAllKeywordsP(reply_text)) {
+                  topic.containsAllKeywords = true;
+                }
+                topic.replies_today++;
+                remaining--;
+              }
+            });
+
+            if (remaining <= 0)
+              keep_going = false;
+
+            if (keep_going) {
+              getReplies(topic, remaining, page + 1);
+            } else {
+              top();
+            }
+          }
+        );
+
+      };       
+      getTopics(1);
+    });
+</script>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+      border: 5px solid #ccc;
+      -moz-border-radius: 5px;
+      border-radius: 5px;
+      padding: 10px;
+    }
+  </style>
+</head>
+<title>Get Satisfaction Boolean AND search</title>
+<body>
+  <h1>Boolean AND search for the incomparable wsmwk :-)</h1>
+  <h2>Topics with the following URLs ANDed inthe "url line"</h2>
+  <div class="keywords"></div>
+  <div class="status">Fetching 6 months of topics and searching for
+      url parameters...</div>
+  <div class="d1">
+    <ol>
+    </ol>
+  </div>
+  <div class="d2"></div>
+  <div class="d3"></div>
+  <div class="d4"></div>
+  <div class="d5"></div>
+  <div class="d5"></div>
+  <div class="d6"></div>
+  <div class="d7"></div>
+  <div class="d8"></div>
+  <div class="d9"></div>
+  <div class="d10"></div>
+  <div class="d11"></div>
+  <div class="d12"></div>
+  <div class="d13"></div>
+  <div class="d14"></div>
+  <div class="d15"></div>
+  <div class="d16"></div>
+  <div class="d17"></div>
+  <div class="d18"></div>
+  <div class="d19"></div>
+  <div class="d20"></div>
+  <div class="d21"></div>
+  <div class="d22"></div>
+  <div class="d23"></div>
+  <div class="d24"></div>
+  <div class="d25"></div>
+
+</body>
+</html>
+
