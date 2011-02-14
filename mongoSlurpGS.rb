@@ -32,6 +32,8 @@ if ARGV.length < 6
   exit
 end
 
+connection = Mongo::Connection.new.db(gs) # no error checking  :-) assume Get Satisfaction Database is there on localhost
+
 metrics_start = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
 metrics_start -= 1
 metrics_stop =  Time.utc(ARGV[3], ARGV[4], ARGV[5], 23, 59)
@@ -125,8 +127,18 @@ while true
         reply_count -= 30
         reply_page += 1
       end while reply_count > 0
+
+     
+     # creates mongodb db with topics
+     # create gstopic Collection in gs db
+     # index by reply last updated at (so if you new reply added or existing reply modified, create just new reply or modify existing reply using create_at since there is no last_updateed_at for topics)
+     # index by fulltext
+     # index by time last_active_at (convert to mongo time format which i
+     # guess is js time format i.e. milliseconds since 1970)
+     ## get gstopic via API and get its replies and create fulltext field
+     #KLUDGE: do a complete refresh if topic was updated since the last time you updated it
       
-      # instead opencalais, create gstopic:
+      # instead of opencalais, create gstopic:
       # * mongoTopic = GS api topic + all api replies + api tags
       # db.things.ensureIndex({mongotopic:1});  http://www.mongodb.org/display/DOCS/Indexes
       # ** synthetic field fulltext  = subject + " "  + content + " " + reply
@@ -144,6 +156,13 @@ while true
       # on author and time:
       # ** db.posts.ensureIndex({author: 1, created_on: 1});
       # ** db.posts.find({author: "Mike", created_on: {$gt: start, $lt: end}});
+      # http://whilefalse.net/2010/01/14/date-queries-mongodb/ :
+      ## db.collection.find({$where: "this.date_field > new Date(2009, 11, 02)"}), can i index on last_updated_at filed from GS or do i need to create a new data field?,hmmm need new date field it looks like: 
+      ## http://www.mongodb.org/display/DOCS/Import+Export+Tools MongoDB supports more types that JSON does, so it has a special format for representing some of these types as valid JSON. For example, JSON has no date type. Thus, to import data containing dates, you structure your JSON like:
+## {"somefield" : 123456, "created_at" : {"$date" : 1285679232000}}
+## http://rubylearning.com/blog/2010/12/21/being-awesome-with-the-mongodb-ruby-driver/ new_post = { :title => "RubyLearning.com, its awesome", :content => "This is a pretty sweet way to learn Ruby", :created_on => Time.now }
+## i.e. use http://www.ruby-doc.org/core/classes/Time.html instead of Date and Time
+# last_updated_at_mongo = Time.utc(2011,2,13,6,8,9) // using string version of ASCII time updated_at since all GS API times are UTC
 
       printf(STDERR, "*** opencalais topic_text:%s\n", topic_text)
 
