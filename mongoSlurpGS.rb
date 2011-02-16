@@ -6,8 +6,6 @@ require 'pp'
 require 'time'
 require 'date'
 require 'mongo'
-include Mongo
-
 
 def getResponse(url)
 
@@ -138,13 +136,12 @@ while true
       end while reply_count > 0
 
       topicsColl.insert(topic)
-      db.topics.create_index([['created_at', Mongo::DESCENDING], 'last_active_at',Mongo::DESCENDING], ['fulltext',MONGO::ASCENDING]])
-
     
-      printf(STDERR, "*** opencalais topic_text:%s\n", topic_text)
-
     end
   end 
+  topicsColl.create_index([['created_at', Mongo::DESCENDING], ['last_active_at',Mongo::DESCENDING]])
+  # ,['fulltext',Mongo::ASCENDING]])
+
   if end_program
     break
   end
