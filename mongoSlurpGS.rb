@@ -83,7 +83,7 @@ while true
     PP::pp(topic,$stderr)
     printf(STDERR, "\nEND*** of topic\n")
 
-    topic_text = topic["subject"] + " " + topic["content"]
+    topic_text = topic["subject"].toLowerCase() + " " + topic["content"].toLowerCase()
    
     reply_count = topic["reply_count"]
   
@@ -127,7 +127,7 @@ while true
           #if (reply_created_time <=> metrics_start) == 1 &&
           #   (reply_created_time <=> metrics_stop) == -1
           # always get all replies
-          topic["fulltext"] = topic["fulltext"] + " " +  reply["content"]
+          topic["fulltext"] = topic["fulltext"] + " " +  reply["content"].toLowerCase()
           #else
           #  printf(STDERR,"Reply created by:%s at:%s topic:%s reply:%s NOT IN Time Window\n",author, reply_created_time, topic_id, reply_id)
           #end
