@@ -32,7 +32,8 @@ if ARGV.length < 6
   exit
 end
 
-connection = Mongo::Connection.new.db(gs) # no error checking  :-) assume Get Satisfaction Database is there on localhost
+db = Mongo::Connection.new.db("gs") # no error checking  :-) assume Get Satisfaction Database is there on localhost
+topicsColl = db.collection("topics")
 
 metrics_start = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
 metrics_start -= 1
@@ -65,6 +66,14 @@ while true
     last_active_at = Time.parse(topic["last_active_at"])
     last_active_at = last_active_at.utc
     printf(STDERR, "TOPIC last_active_at:%s\n", last_active_at)
+    created_at = Time.parse(topic["created_at"])
+    created_at = created_at.utc
+    printf(STDERR, "TOPIC created_at:%s\n", last_active_at)
+    # JSON only transports string times so convert time to Unix time before putting it into mongo
+    topic.delete("last_active_at") 
+    topic["last_active_at"] = last_active_at
+    topic.delete("created_at") 
+    topic["created_at"] = created_at
 
     if (last_active_at <=> (metrics_start + 1)) == -1 
       printf(STDERR, "ending program\n")
@@ -72,7 +81,6 @@ while true
       break
     end
     
-
     printf(STDERR, "START*** of topic\n")
     PP::pp(topic,$stderr)
     printf(STDERR, "\nEND*** of topic\n")
@@ -82,6 +90,7 @@ while true
     reply_count = topic["reply_count"]
   
     printf(STDERR, "reply_count:%d\n", reply_count)
+    topic["fulltext"] = topic_text
     reply_page = 1
     if reply_count != 0
       begin # while reply_count > 0
@@ -119,7 +128,7 @@ while true
 
           if (reply_created_time <=> metrics_start) == 1 &&
              (reply_created_time <=> metrics_stop) == -1
-            topic_text = topic_text + " " + reply["content"]            
+            topic["fulltext"] = topic["fulltext"] + " " +  reply["content"]
           else
             printf(STDERR,"Reply created by:%s at:%s topic:%s reply:%s NOT IN Time Window\n",author, reply_created_time, topic_id, reply_id)
           end
@@ -128,81 +137,12 @@ while true
         reply_page += 1
       end while reply_count > 0
 
-     
-     # creates mongodb db with topics
-     # create gstopic Collection in gs db
-     # index by reply last updated at (so if you new reply added or existing reply modified, create just new reply or modify existing reply using create_at since there is no last_updateed_at for topics)
-     # index by fulltext
-     # index by time last_active_at (convert to mongo time format which i
-     # guess is js time format i.e. milliseconds since 1970)
-     ## get gstopic via API and get its replies and create fulltext field
-     #KLUDGE: do a complete refresh if topic was updated since the last time you updated it
-      
-      # instead of opencalais, create gstopic:
-      # * mongoTopic = GS api topic + all api replies + api tags
-      # db.things.ensureIndex({mongotopic:1});  http://www.mongodb.org/display/DOCS/Indexes
-      # ** synthetic field fulltext  = subject + " "  + content + " " + reply
-      # text, create_index(fulltext)
-      # (http://markwatson.com/blog/2009/11/mongodb-has-good-support-for-indexing.html
-      # )
-      # Topic.find(:all, :conditions => {:fulltext => /^keyword e.g. water water/i}).each { |row| puts row.to_s }
-      # * indexing examples http://www.slideshare.net/mongodb/indexing-with-mongodb
-      # ** synthetic field fulltextWithTags = fulltext + tag.name from all
-      # tags create_index(fulltextWithTags)
-      # index by time to find all topics for last 6 months
-      # than index by fulltext to find keywords
-      # i.e. .ensureIndex({last_active_at":1})
-      # http://cookbook.mongodb.org/patterns/date_range/ has example of search
-      # on author and time:
-      # ** db.posts.ensureIndex({author: 1, created_on: 1});
-      # ** db.posts.find({author: "Mike", created_on: {$gt: start, $lt: end}});
-      # http://whilefalse.net/2010/01/14/date-queries-mongodb/ :
-      ## db.collection.find({$where: "this.date_field > new Date(2009, 11, 02)"}), can i index on last_updated_at filed from GS or do i need to create a new data field?,hmmm need new date field it looks like: 
-      ## http://www.mongodb.org/display/DOCS/Import+Export+Tools MongoDB supports more types that JSON does, so it has a special format for representing some of these types as valid JSON. For example, JSON has no date type. Thus, to import data containing dates, you structure your JSON like:
-## {"somefield" : 123456, "created_at" : {"$date" : 1285679232000}}
-## http://rubylearning.com/blog/2010/12/21/being-awesome-with-the-mongodb-ruby-driver/ new_post = { :title => "RubyLearning.com, its awesome", :content => "This is a pretty sweet way to learn Ruby", :created_on => Time.now }
-## i.e. use http://www.ruby-doc.org/core/classes/Time.html instead of Date and Time
-# last_updated_at_mongo = Time.utc(2011,2,13,6,8,9) // using string version of ASCII time updated_at since all GS API times are UTC
+      topicsColl.insert(topic)
+      db.topics.create_index([['created_at', Mongo::DESCENDING], 'last_active_at',Mongo::DESCENDING], ['fulltext',MONGO::ASCENDING]])
 
+    
       printf(STDERR, "*** opencalais topic_text:%s\n", topic_text)
 
-      calais = CalaisClient::OpenCalaisTaggedText.new(topic_text)
-      keywords = calais.get_tags
-      printf(STDERR, "START*** of opencalais keywords for topic:%s\n", topic_url)
-      PP::pp(keywords,$stderr)
-      printf(STDERR, "\nEND*** of opencalais keywords for topic:%s\n", topic_url)
-      keywords.each do |keyword_array|
-        keyword_array.each do |keyword|
-          if !keyword.respond_to?(:chomp, include_private = false)
-            keyword.each do |k|
-              printf(STDERR, "*** opencalais individual keyword:%s\n", k)
-              tag_is_stop_word = false
-              STOP_WORDS.each do|stop_word|
-                if stop_word == k
-                  tag_is_stop_word = true
-                  break
-                end
-              end
-              if !tag_is_stop_word && k.length != 0 && !k.include?("http")
-                printf("keyword:%s,url:%s\n", k, topic_url)
-              end
-            end          
-          else 
-            printf(STDERR, "*** opencalais individual keyword:%s\n", keyword.to_s)
-            tag_is_stop_word = false
-            STOP_WORDS.each do|stop_word|
-              if stop_word == keyword.to_s
-                tag_is_stop_word = true
-                break
-              end
-            end
-          end
-          if !tag_is_stop_word && keyword.to_s.length != 0 && !keyword.to_s.include?("http")
-            printf(STDERR, "*** opencalas NOT adding individual keyword since it's a string\n")
-            # printf("keyword:%s,url:%s\n", keyword.to_s, topic_url)
-          end
-        end
-      end
     end
   end 
   if end_program
