@@ -124,12 +124,13 @@ while true
 
           printf(STDERR, "RRR: reply created time:%s\n", reply_created_time)
 
-          if (reply_created_time <=> metrics_start) == 1 &&
-             (reply_created_time <=> metrics_stop) == -1
-            topic["fulltext"] = topic["fulltext"] + " " +  reply["content"]
-          else
-            printf(STDERR,"Reply created by:%s at:%s topic:%s reply:%s NOT IN Time Window\n",author, reply_created_time, topic_id, reply_id)
-          end
+          #if (reply_created_time <=> metrics_start) == 1 &&
+          #   (reply_created_time <=> metrics_stop) == -1
+          # always get all replies
+          topic["fulltext"] = topic["fulltext"] + " " +  reply["content"]
+          #else
+          #  printf(STDERR,"Reply created by:%s at:%s topic:%s reply:%s NOT IN Time Window\n",author, reply_created_time, topic_id, reply_id)
+          #end
         end # replies ... do
         reply_count -= 30
         reply_page += 1
