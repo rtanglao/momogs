@@ -139,7 +139,7 @@ while true
   end
 end
 # index on "id", which is GS unique id to allow for future updates
-topicsColl.create_index([['created_at', Mongo::DESCENDING], ['last_active_at',Mongo::DESCENDING]], ['id',Mongo::DESCENDING])
+topicsColl.create_index([['created_at', Mongo::DESCENDING], ['last_active_at',Mongo::DESCENDING], ['id',Mongo::DESCENDING]])
 
 
 
