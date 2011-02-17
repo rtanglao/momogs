@@ -83,7 +83,7 @@ while true
     PP::pp(topic,$stderr)
     printf(STDERR, "\nEND*** of topic\n")
 
-    topic_text = topic["subject"].toLowerCase() + " " + topic["content"].toLowerCase()
+    topic_text = topic["subject"].downcase + " " + topic["content"].downcase
    
     reply_count = topic["reply_count"]
   
@@ -123,14 +123,8 @@ while true
           reply_id = reply["id"]
 
           printf(STDERR, "RRR: reply created time:%s\n", reply_created_time)
-
-          #if (reply_created_time <=> metrics_start) == 1 &&
-          #   (reply_created_time <=> metrics_stop) == -1
           # always get all replies
-          topic["fulltext"] = topic["fulltext"] + " " +  reply["content"].toLowerCase()
-          #else
-          #  printf(STDERR,"Reply created by:%s at:%s topic:%s reply:%s NOT IN Time Window\n",author, reply_created_time, topic_id, reply_id)
-          #end
+          topic["fulltext"] = topic["fulltext"] + " " +  reply["content"].downcase
         end # replies ... do
         reply_count -= 30
         reply_page += 1
@@ -139,14 +133,13 @@ while true
       topicsColl.insert(topic)
     
     end
-  end 
-  topicsColl.create_index([['created_at', Mongo::DESCENDING], ['last_active_at',Mongo::DESCENDING]])
-  # ,['fulltext',Mongo::ASCENDING]])
-
+  end  
   if end_program
     break
   end
 end
+# index on "id", which is GS unique id to allow for future updates
+topicsColl.create_index([['created_at', Mongo::DESCENDING], ['last_active_at',Mongo::DESCENDING]], ['id',Mongo::DESCENDING])
 
 
 
