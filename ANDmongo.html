@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js"></script>
+<script type="application/javascript">
+// based on original code by protz aka Jonathan Protzenko.
+// http://www.xulforum.org/go_code
+// https://gist.github.com/550766 is where I got the original code from :-) !
+// Thanks Protz!
+if (typeof console === 'undefined' || !console.log) {
+  var console = { log: function () {}};
+};
+$(window).load(function () {
+  var urlParams = {};
+    (function () {
+    var e,
+      a = /\+/g,  // Regex for replacing addition symbol with a space
+      r = /([^&=]+)=?([^&]*)/g,
+      d = function (s) { return decodeURIComponent(s.replace(a, " ")); },
+      q = window.location.search.substring(1);
+
+    while (e = r.exec(q))
+      urlParams[d(e[1])] = d(e[2]);
+    })();
+
+    $.ajaxSetup({
+      cache: false // turn off AJAX caching so you actually get the top 5!
+    });
+
+    function getMongoQueryURL() {
+      var base_url = "m90.aaa.bbb.ccc.bctel.net:27080/gs/topics/_find?criteria=";
+      var query_string="";
+      var first = true;
+      for (var i in urlParams) {
+        var keyword = urlParams[i].toLowerCase();
+        if (first) {
+          query_string = '{\"$where\":\"this.fulltext.indexOf(\\\"' + keyword + '\\\")' + "!= -1";
+          first = false;
+        }
+        else {
+          query_string = query_string + ' && this.fulltext.indexOf(\\\"'+ keyword + '\\\")' + "!= -1";
+        }
+      }
+      query_string = query_string + '\"}';
+      console.log('query_string:'+query_string);
+      var url = base_url + escape(query_string) +"&fields=" + escape('{\"at_sfn\":\"1\"}') + "&sort=" +
+        escape('{\"last_active_at\":"-1\"}');
+      console.log('query url'+url);
+      return url;
+    };
+    function getTopics(page){
+      var url = getMongoQueryURL();
+      $.getJSON(
+        url,
+        function _getTopics_loop (sleepyMongooseResult) {
+          query_result = sleepyMongooseResult.ok.toString();
+          console.log("sleepyMongooseResult:"+query_result);
+          $.each(sleepyMongooseResult.results, function(i, topic) {
+            topic_url = topic.at_sfn;
+            console.log("url:"+topic_url);
+            var $ol = $(".d1").find("ol");
+            $ol.append(
+              $('<li><a href=\"'+topic_url+'\">'+topic_url+"</a>"+"</li>"));
+          });
+        });
+      };
+  getTopics(1);
+});
+</script>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+
+    h1 {
+      text-align: center;
+      border: 5px solid #ccc;
+      -moz-border-radius: 5px;
+      border-radius: 5px;
+      padding: 10px;
+    }
+  </style>
+</head>
+<title>Get Satisfaction Boolean AND search</title>
+<body>
+  <h1>Boolean AND search for the incomparable wsmwk :-)</h1>
+  <h2>Topics with the following keywords ANDed in the "url line"</h2>
+  <div class="keywords"></div>
+  <div class="status">Fetching 1 month of topics and searching for
+      url parameters...</div>
+  <div class="d1">
+    <ol>
+    </ol>
+  </div>
+</body>
+</html>
+
