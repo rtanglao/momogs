@@ -90,8 +90,10 @@ while true
     printf(STDERR, "reply_count:%d\n", reply_count)
     topic["fulltext"] = topic_text
     reply_page = 1
+    topic["reply_id_array"] = []
     if reply_count != 0
       begin # while reply_count > 0
+        topic["reply_count"] = reply_count
         get_reply_url = "topics/" + topic["slug"] + "/replies.json?sort=recently_created&page=" << "%d" % reply_page << "&limit=30"
 
         PP::pp(get_reply_url, $stderr)
@@ -113,7 +115,6 @@ while true
     
           printf(STDERR, "START*** of reply\n")
           PP::pp(reply, $stderr)
-
           printf(STDERR, "\nEND*** of reply\n")
 
           author = reply["author"]["canonical_name"]
@@ -125,10 +126,54 @@ while true
           printf(STDERR, "RRR: reply created time:%s\n", reply_created_time)
           # always get all replies
           topic["fulltext"] = topic["fulltext"] + " " +  reply["content"].downcase
+          topic["reply_id_array"].push(reply["id"])
         end # replies ... do
         reply_count -= 30
         reply_page += 1
       end while reply_count > 0
+
+      tags_page = 1
+      topic["tags_array"] = []
+      topic["tag_id_array"] = []
+      tag_count = 0
+      first_tag_page = true
+
+      begin  # while tag_count > 0         
+        get_tags_url = "topics/" + topic["slug"] + "/tags.json?page=" << "%d" % tags_page << "&limit=30"
+
+        PP::pp(get_tags_url, $stderr)
+        skip = false
+        begin 
+          tags = getResponse(get_tags_url)
+        rescue JSON::ParserError
+          printf(STDERR, "Parser error in HTTP GET of tag url:%s\n", get_tags_url)
+          tags_count -= 30
+          tags_page += 1
+          skip = true
+        end
+        if skip
+          skip = false
+          next
+        end
+
+        if first_tag_page
+          tag_count = tags["total"]
+          topic["tag_count"] = tag_count
+          first_tag_page = false
+        end
+        tags["data"].each do|tag|    
+          printf(STDERR, "START*** of tag\n")
+          PP::pp(tag, $stderr)
+          printf(STDERR, "\nEND*** of tag\n")
+          tag_name = tag["name"].downcase
+          topic["tags_array"].push(tag_name)
+          topic["tag_id_array"].push(tag["id"])
+        end # tags ... do
+        tag_count -= 30
+        tags_page += 1
+      end while tag_count > 0
+      topic["tags_str"] = topic["tags_array"].join("~")
+      topic["fulltext_with_tags"] = topic["fulltext"] + " " + topic["tags_array"].join(" ")
 
       topicsColl.insert(topic)
     
@@ -139,7 +184,7 @@ while true
   end
 end
 # index on "id", which is GS unique id to allow for future updates
-topicsColl.create_index([['created_at', Mongo::DESCENDING], ['last_active_at',Mongo::DESCENDING], ['id',Mongo::DESCENDING]])
+topicsColl.create_index([['created_at', Mongo::DESCENDING], ['last_active_at',Mongo::DESCENDING], ['id',Mongo::DESCENDING],['tags_str',Mongo::DESCENDING]])
 
 
 
