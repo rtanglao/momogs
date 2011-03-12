@@ -84,6 +84,7 @@ while true
     topic["reply_id_array"] = []
     topic["fulltext"] = ""
     topic["fulltext_with_tags"] = ""
+    topic["tags_str"] = ""
 
     printf(STDERR, "START*** of topic\n")
     PP::pp(topic,$stderr)
@@ -95,6 +96,7 @@ while true
   
     printf(STDERR, "reply_count:%d\n", reply_count)
     topic["fulltext"] = topic_text
+    topic["fulltext_with_tags"] = topic_text
     reply_page = 1
     if reply_count != 0
       begin # while reply_count > 0
@@ -156,7 +158,7 @@ while true
             skip = false
             next
           end
-
+         
           if first_tag_page
             tag_count = tags["total"]
             topic["tag_count"] = tag_count
@@ -169,8 +171,8 @@ while true
             tag_name = tag["name"].downcase
             topic["tags_array"].push(tag_name)
             topic["tag_id_array"].push(tag["id"])
-            topic["tags_str"] = tag_name + "~"
-            topic["fulltext_with_tags"] = topic["fulltext"] + " " + tag_name
+            topic["tags_str"] = topic["tags_str"] + tag_name + "~"
+            topic["fulltext_with_tags"] = topic["fulltext_with_tags"] + " " + tag_name
           end # tags ... do
           tag_count -= 30
           tags_page += 1                   
