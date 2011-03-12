@@ -16,7 +16,7 @@ def getResponse(url)
   resp, data = http.get(url, nil)
    
   if resp.code != "200"
-    puts "Error: #{resp.code} from:#{url}"
+    printf(STDERR, "getResponse Parser Error: #%d from:%s\n", resp.code, url)
     raise JSON::ParserError    # this is a kludge, should raise a proper exception!!!!!
     return ""
   end
@@ -79,6 +79,12 @@ while true
       break
     end
     
+    topic["tags_array"] = []
+    topic["tag_id_array"] = []
+    topic["reply_id_array"] = []
+    topic["fulltext"] = ""
+    topic["fulltext_with_tags"] = ""
+
     printf(STDERR, "START*** of topic\n")
     PP::pp(topic,$stderr)
     printf(STDERR, "\nEND*** of topic\n")
@@ -90,7 +96,6 @@ while true
     printf(STDERR, "reply_count:%d\n", reply_count)
     topic["fulltext"] = topic_text
     reply_page = 1
-    topic["reply_id_array"] = []
     if reply_count != 0
       begin # while reply_count > 0
         topic["reply_count"] = reply_count
@@ -130,50 +135,47 @@ while true
         end # replies ... do
         reply_count -= 30
         reply_page += 1
-      end while reply_count > 0
+        tags_page = 1
+        tag_count = 0
+        first_tag_page = true
 
-      tags_page = 1
-      topic["tags_array"] = []
-      topic["tag_id_array"] = []
-      tag_count = 0
-      first_tag_page = true
+        begin  # while tag_count > 0         
+          get_tags_url = "topics/" + topic["slug"] + "/tags.json?page=" << "%d" % tags_page << "&limit=30"
 
-      begin  # while tag_count > 0         
-        get_tags_url = "topics/" + topic["slug"] + "/tags.json?page=" << "%d" % tags_page << "&limit=30"
-
-        PP::pp(get_tags_url, $stderr)
-        skip = false
-        begin 
-          tags = getResponse(get_tags_url)
-        rescue JSON::ParserError
-          printf(STDERR, "Parser error in HTTP GET of tag url:%s\n", get_tags_url)
-          tags_count -= 30
-          tags_page += 1
-          skip = true
-        end
-        if skip
+          PP::pp(get_tags_url, $stderr)
           skip = false
-          next
-        end
+          begin 
+            tags = getResponse(get_tags_url)
+          rescue JSON::ParserError
+            printf(STDERR, "Parser error in HTTP GET of tag url:%s\n", get_tags_url)
+            tags_count -= 30
+            tags_page += 1
+            skip = true
+          end
+          if skip
+            skip = false
+            next
+          end
 
-        if first_tag_page
-          tag_count = tags["total"]
-          topic["tag_count"] = tag_count
-          first_tag_page = false
-        end
-        tags["data"].each do|tag|    
-          printf(STDERR, "START*** of tag\n")
-          PP::pp(tag, $stderr)
-          printf(STDERR, "\nEND*** of tag\n")
-          tag_name = tag["name"].downcase
-          topic["tags_array"].push(tag_name)
-          topic["tag_id_array"].push(tag["id"])
-        end # tags ... do
-        tag_count -= 30
-        tags_page += 1
-      end while tag_count > 0
-      topic["tags_str"] = topic["tags_array"].join("~")
-      topic["fulltext_with_tags"] = topic["fulltext"] + " " + topic["tags_array"].join(" ")
+          if first_tag_page
+            tag_count = tags["total"]
+            topic["tag_count"] = tag_count
+            first_tag_page = false
+          end
+          tags["data"].each do|tag|    
+            printf(STDERR, "START*** of tag\n")
+            PP::pp(tag, $stderr)
+            printf(STDERR, "\nEND*** of tag\n")
+            tag_name = tag["name"].downcase
+            topic["tags_array"].push(tag_name)
+            topic["tag_id_array"].push(tag["id"])
+            topic["tags_str"] = tag_name + "~"
+            topic["fulltext_with_tags"] = topic["fulltext"] + " " + tag_name
+          end # tags ... do
+          tag_count -= 30
+          tags_page += 1                   
+        end while tag_count > 0
+      end while reply_count > 0
 
       topicsColl.insert(topic)
     
