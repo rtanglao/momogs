@@ -169,10 +169,14 @@ while true
             PP::pp(tag, $stderr)
             printf(STDERR, "\nEND*** of tag\n")
             tag_name = tag["name"].downcase
-            topic["tags_array"].push(tag_name)
-            topic["tag_id_array"].push(tag["id"])
-            topic["tags_str"] = topic["tags_str"] + tag_name + "~"
-            topic["fulltext_with_tags"] = topic["fulltext_with_tags"] + " " + tag_name
+            if tag_name.length < 80
+              topic["tags_array"].push(tag_name)
+              topic["tag_id_array"].push(tag["id"])
+              topic["tags_str"] = topic["tags_str"] + tag_name + "~"
+              topic["fulltext_with_tags"] = topic["fulltext_with_tags"] + " " + tag_name
+            else
+              $stderr.printf("SKIPPING >80 character tag!!\n")
+            end
           end # tags ... do
           tag_count -= 30
           tags_page += 1                   
