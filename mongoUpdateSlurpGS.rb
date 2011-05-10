@@ -82,6 +82,7 @@ while true
     topic["tags_array"] = []
     topic["tag_id_array"] = []
     topic["reply_id_array"] = []
+    topic["reply_array"] = []
     topic["fulltext"] = ""
     topic["fulltext_with_tags"] = ""
     topic["tags_str"] = ""
@@ -134,6 +135,7 @@ while true
           # always get all replies
           topic["fulltext"] = topic["fulltext"] + " " +  reply["content"].downcase
           topic["reply_id_array"].push(reply["id"])
+          topic["reply_array"].push(reply)
         end # replies ... do
         reply_count -= 30
         reply_page += 1
