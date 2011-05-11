@@ -20,7 +20,7 @@ end_program = false
 
 topics_created_or_updated = 0
 topicsColl.find("last_active_at" => {"$gte" => metrics_start}).each do |t|
-  $stderr.printf("CHECKING topic id:%d\n",t["id"])
+  $stderr.printf("CHECKING topic id:%d which was last active at:%s\n",t["id"], t["last_active_at"].to_s)
 
   time_compare = t["last_active_at"] <=> metrics_stop
   if time_compare == -1 || time_compare == 0
