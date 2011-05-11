@@ -30,7 +30,8 @@ topicsColl.find("last_active_at" => {"$gte" => metrics_start}).each do |t|
   end
 
   t["reply_array"].each do |r|
-    created_at = t["created_at"]
+    created_at = Time.parse(r["created_at"])
+    $stderr.printf("CHECKING topic id:%d, reply id:%d which was last active at:%s\n",t["id"], r["id"], created_at.to_s)
     time_compare_start = created_at   <=> metrics_start
     time_compare_stop  = metrics_stop <=> created_at
     if time_compare_start >= 0 && time_compare_stop <= 0
