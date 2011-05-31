@@ -204,7 +204,10 @@ while true
           end
           topic["synthetic_status_journal"] = existingTopic["synthetic_status_journal"]
           if !status_update_found
+            $stderr.printf("status update NOT FOUND so adding it to synthetic_status_journal\n")
             topic["synthetic_status_journal"].push({ "status" => status, "status_update_time" => status_update_time })
+          else
+            $stderr.printf("status update FOUND so just copying OLD synthetic_status_journal\n")
           end
         else
           $stderr.printf("CREATING synthetic_status_journal! status:%s status_update_time:%s\n", status, status_update_time)
