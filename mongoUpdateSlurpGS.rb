@@ -142,85 +142,84 @@ while true
         end # replies ... do
         reply_count -= 30
         reply_page += 1
-        tags_page = 1
-        tag_count = 0
-        first_tag_page = true
 
-        begin  # while tag_count > 0         
-          get_tags_url = "topics/" + topic["slug"] + "/tags.json?page=" << "%d" % tags_page << "&limit=30"
-
-          PP::pp(get_tags_url, $stderr)
-          skip = false
-          begin 
-            tags = getResponse(get_tags_url)
-          rescue JSON::ParserError
-            printf(STDERR, "Parser error in HTTP GET of tag url:%s\n", get_tags_url)
-            tags_count -= 30
-            tags_page += 1
-            skip = true
-          end
-          if skip
-            skip = false
-            next
-          end
-         
-          if first_tag_page
-            tag_count = tags["total"]
-            topic["tag_count"] = tag_count
-            first_tag_page = false
-          end
-          tags["data"].each do|tag|    
-            printf(STDERR, "START*** of tag\n")
-            PP::pp(tag, $stderr)
-            printf(STDERR, "\nEND*** of tag\n")
-            tag_name = tag["name"].downcase
-            if tag_name.length < 80
-              topic["tags_array"].push(tag_name)
-              topic["tag_id_array"].push(tag["id"])
-              topic["tags_str"] = topic["tags_str"] + tag_name + "~"
-              topic["fulltext_with_tags"] = topic["fulltext_with_tags"] + " " + tag_name
-            else
-              $stderr.printf("SKIPPING >80 character tag!!\n")
-            end
-          end # tags ... do
-          tag_count -= 30
-          tags_page += 1                   
-        end while tag_count > 0
       end while reply_count > 0
+    end # reply_count != 0
 
-      id = topic["id"]
-      existingTopic =  topicsColl.find_one("id" =>id)
-      if existingTopic
-        $stderr.printf("UPDATING topic id:%d\n",id)
-        if existingTopic.has_key?("synthetic_status_journal") 
-          $stderr.printf("ADDING to synthetic_status_journal! current journal size:%d status:%s status_update_time:%s\n", 
-            existingTopic["synthetic_status_journal"].length(), status, status_update_time)
-          status_update_found = false
-          existingTopic["synthetic_status_journal"].each do |journal_element|
-            if (journal_element["status_update_time"] <=> status_update_time) == 0
-              status_update_found = true
-              break
-            end
-          end
-          topic["synthetic_status_journal"] = existingTopic["synthetic_status_journal"]
-          if !status_update_found
-            $stderr.printf("status update NOT FOUND so adding it to synthetic_status_journal\n")
-            topic["synthetic_status_journal"].push({ "status" => status, "status_update_time" => status_update_time })
-          else
-            $stderr.printf("status update FOUND so just copying OLD synthetic_status_journal\n")
-          end
-        else
-          $stderr.printf("CREATING synthetic_status_journal! status:%s status_update_time:%s\n", status, status_update_time)
-          topic["synthetic_status_journal"].push({ "status" => status, "status_update_time" => status_update_time })
-        end
-        topicsColl.update({"id" =>id},topic)
-      else
-        $stderr.printf("INSERTING topic id:%d\n",id)
-        topic["synthetic_status_journal"].push({ "status" => status, "status_update_time" => status_update_time })
-        topicsColl.insert(topic)
+    tags_page = 1
+    tag_count = 0
+    first_tag_page = true
+    begin  # while tag_count > 0         
+      get_tags_url = "topics/" + topic["slug"] + "/tags.json?page=" << "%d" % tags_page << "&limit=30"
+      PP::pp(get_tags_url, $stderr)
+      skip = false
+      begin 
+        tags = getResponse(get_tags_url)
+      rescue JSON::ParserError
+        printf(STDERR, "Parser error in HTTP GET of tag url:%s\n", get_tags_url)
+        tags_count -= 30
+        tags_page += 1
+        skip = true
       end
+      if skip
+        skip = false
+        next
+      end
+         
+      if first_tag_page
+        tag_count = tags["total"]
+        topic["tag_count"] = tag_count
+        first_tag_page = false
+      end
+      tags["data"].each do|tag|    
+        printf(STDERR, "START*** of tag\n")
+        PP::pp(tag, $stderr)
+        printf(STDERR, "\nEND*** of tag\n")
+        tag_name = tag["name"].downcase
+        if tag_name.length < 80
+          topic["tags_array"].push(tag_name)
+          topic["tag_id_array"].push(tag["id"])
+          topic["tags_str"] = topic["tags_str"] + tag_name + "~"
+          topic["fulltext_with_tags"] = topic["fulltext_with_tags"] + " " + tag_name
+        else
+          $stderr.printf("SKIPPING >80 character tag!!\n")
+        end
+      end # tags ... do
+      tag_count -= 30
+      tags_page += 1                   
+    end while tag_count > 0
+    id = topic["id"]
+    existingTopic =  topicsColl.find_one("id" =>id)
+    if existingTopic
+      $stderr.printf("UPDATING topic id:%d\n",id)
+      if existingTopic.has_key?("synthetic_status_journal") 
+        $stderr.printf("ADDING to synthetic_status_journal! current journal size:%d status:%s status_update_time:%s\n", 
+          existingTopic["synthetic_status_journal"].length(), status, status_update_time)
+        status_update_found = false
+        existingTopic["synthetic_status_journal"].each do |journal_element|
+          if (journal_element["status_update_time"] <=> status_update_time) == 0
+            status_update_found = true
+            break
+          end
+        end
+        topic["synthetic_status_journal"] = existingTopic["synthetic_status_journal"]
+        if !status_update_found
+          $stderr.printf("status update NOT FOUND so adding it to synthetic_status_journal\n")
+          topic["synthetic_status_journal"].push({ "status" => status, "status_update_time" => status_update_time })
+        else
+          $stderr.printf("status update FOUND so just copying OLD synthetic_status_journal\n")
+        end
+      else
+        $stderr.printf("CREATING synthetic_status_journal! status:%s status_update_time:%s\n", status, status_update_time)
+        topic["synthetic_status_journal"].push({ "status" => status, "status_update_time" => status_update_time })
+      end
+      topicsColl.update({"id" =>id},topic)
+    else
+      $stderr.printf("INSERTING topic id:%d\n",id)
+      topic["synthetic_status_journal"].push({ "status" => status, "status_update_time" => status_update_time })
+      topicsColl.insert(topic)
     end
-  end  
+  end 
   if end_program
     break
   end
