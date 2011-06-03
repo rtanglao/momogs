@@ -99,12 +99,12 @@ while true
     reply_count = topic["reply_count"]
   
     printf(STDERR, "reply_count:%d\n", reply_count)
+    topic["reply_count"] = reply_count
     topic["fulltext"] = topic_text
     topic["fulltext_with_tags"] = topic_text
     reply_page = 1
     if reply_count != 0
       begin # while reply_count > 0
-        topic["reply_count"] = reply_count
         get_reply_url = "topics/" + topic["slug"] + "/replies.json?sort=recently_created&page=" << "%d" % reply_page << "&limit=30"
 
         PP::pp(get_reply_url, $stderr)
@@ -118,7 +118,8 @@ while true
           skip = true
         end
         if skip
-          skip = false
+          skip = false 
+          $stderr.printf("JSON error SKIPPING to next page of replies, reply_count:%d\n", reply_count)
           next
         end
 
@@ -144,12 +145,12 @@ while true
         reply_page += 1
 
       end while reply_count > 0
-    end # reply_count != 0
+    end # if reply_count != 0
 
     tags_page = 1
-    tag_count = 0
+    tag_count = 1 # kludge
     first_tag_page = true
-    begin  # while tag_count > 0         
+    while tag_count > 0         
       get_tags_url = "topics/" + topic["slug"] + "/tags.json?page=" << "%d" % tags_page << "&limit=30"
       PP::pp(get_tags_url, $stderr)
       skip = false
@@ -157,7 +158,7 @@ while true
         tags = getResponse(get_tags_url)
       rescue JSON::ParserError
         printf(STDERR, "Parser error in HTTP GET of tag url:%s\n", get_tags_url)
-        tags_count -= 30
+        tag_count -= 30
         tags_page += 1
         skip = true
       end
@@ -170,24 +171,27 @@ while true
         tag_count = tags["total"]
         topic["tag_count"] = tag_count
         first_tag_page = false
+        $stderr.printf("TAG COUNT:%d\n",tag_count)
       end
-      tags["data"].each do|tag|    
-        printf(STDERR, "START*** of tag\n")
-        PP::pp(tag, $stderr)
-        printf(STDERR, "\nEND*** of tag\n")
-        tag_name = tag["name"].downcase
-        if tag_name.length < 80
-          topic["tags_array"].push(tag_name)
-          topic["tag_id_array"].push(tag["id"])
-          topic["tags_str"] = topic["tags_str"] + tag_name + "~"
-          topic["fulltext_with_tags"] = topic["fulltext_with_tags"] + " " + tag_name
-        else
-          $stderr.printf("SKIPPING >80 character tag!!\n")
-        end
-      end # tags ... do
+      if tag_count > 0 
+        tags["data"].each do|tag|    
+          printf(STDERR, "START*** of tag\n")
+          PP::pp(tag, $stderr)
+          printf(STDERR, "\nEND*** of tag\n")
+          tag_name = tag["name"].downcase
+          if tag_name.length < 80
+            topic["tags_array"].push(tag_name)
+            topic["tag_id_array"].push(tag["id"])
+            topic["tags_str"] = topic["tags_str"] + tag_name + "~"
+            topic["fulltext_with_tags"] = topic["fulltext_with_tags"] + " " + tag_name
+          else
+            $stderr.printf("SKIPPING >80 character tag!!\n")
+          end
+        end # tags ... do
+      end
       tag_count -= 30
       tags_page += 1                   
-    end while tag_count > 0
+    end # while tag_count > 0
     id = topic["id"]
     existingTopic =  topicsColl.find_one("id" =>id)
     if existingTopic
