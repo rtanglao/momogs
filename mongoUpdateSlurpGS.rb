@@ -151,6 +151,7 @@ while true
           printf(STDERR, "RRR: reply created time:%s\n", reply_created_time)
           # always get all replies
           topic["fulltext"] = topic["fulltext"] + " " +  reply["content"].downcase
+          topic["fulltext_with_tags"] = topic["fulltext"]
           topic["reply_id_array"].push(reply["id"])
           topic["reply_array"].push(reply)
         end # replies ... do
