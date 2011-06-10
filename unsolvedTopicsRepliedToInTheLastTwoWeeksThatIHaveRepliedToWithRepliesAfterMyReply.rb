@@ -51,8 +51,8 @@ topicsColl.find({"created_at" => {"$gte" => metrics_start, "$lt" => metrics_stop
     end
   end
   if !last_reply_is_gs_contributor
-    printf("Please reply to:%s\n", t["at_sfn"])
+    printf("Please reply to: %s\n", t["at_sfn"])
   else
-    $stderr.printf("No need to reply to:%s\n", t["at_sfn"])
+    $stderr.printf("No need to reply to: %s\n", t["at_sfn"])
   end
 end
