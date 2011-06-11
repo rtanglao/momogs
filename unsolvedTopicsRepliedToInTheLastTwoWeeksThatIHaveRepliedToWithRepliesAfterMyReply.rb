@@ -29,9 +29,12 @@ topicsColl.find({"created_at" => {"$gte" => metrics_start, "$lt" => metrics_stop
   newest_reply_time = last_gs_contributor_reply_time
   last_reply_is_gs_contributor = false
   t["reply_array"].each do |reply|
+    if reply["created_at"].kind_of? String
+      $stderr.printf("String reply created_at:%s\n", reply["created_at"])
+      reply_time = Time.parse(reply["created_at"])
+      reply_time = reply_time.utc
+    end
     reply_author = reply["author"]["canonical_name"]
-    reply_time = Time.parse(reply["created_at"])
-    reply_time = reply_time.utc
     $stderr.printf("CHECKING reply url:%s id:%d which was created at:%s BY:%s\n",reply["url"],reply["id"], reply_time.to_s,
       reply_author)
     if (reply_time <=> newest_reply_time) == 1
