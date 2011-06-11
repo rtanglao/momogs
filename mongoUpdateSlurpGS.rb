@@ -149,6 +149,8 @@ while true
           reply_id = reply["id"]
 
           printf(STDERR, "RRR: reply created time:%s\n", reply_created_time)
+          reply.delete("created_at")
+          reply["created_at"] = reply_created_time
           # always get all replies
           topic["fulltext"] = topic["fulltext"] + " " +  reply["content"].downcase
           topic["fulltext_with_tags"] = topic["fulltext"]
