@@ -43,7 +43,7 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lte" => metrics
           end
         end #contributors.each
         if !contributor_found
-          contributors.push({:author => author,:num_promoted__or_starred => 1})
+          contributors.push({:author => author,:num_promoted_or_starred => 1})
         end
       else
         $stderr.printf("In time period, reply:%d NOT company promoted or star promoted; company:%s, star:%s\n", 
