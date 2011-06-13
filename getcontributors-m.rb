@@ -39,6 +39,7 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lte" => metrics
           if c[:author] == author
             c[:num_promoted_or_starred] += 1
             contributor_found = true
+            break
           end
         end #contributors.each
         if !contributor_found
