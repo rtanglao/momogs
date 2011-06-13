@@ -33,12 +33,16 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lte" => metrics
       author = r["author"]["canonical_name"]
       if star_promoted || company_promoted
         $stderr.printf("In time period, %s has a company promoted or star promoted reply id:%d\n", author, r["id"])
+        contributor_found = false
         contributors.each do |c|
-          if c["author"] == author
-            c["num_promoted_or_starred"] += 1
-          else
-            contributors.push({:author => author,:num_promoted__or_starred => 1})
+          $stderr.printf("contributor loop:author:%s\n",c[:author])
+          if c[:author] == author
+            c[:num_promoted_or_starred] += 1
+            contributor_found = true
           end
+        end #contributors.each
+        if !contributor_found
+          contributors.push({:author => author,:num_promoted__or_starred => 1})
         end
       else
         $stderr.printf("In time period, reply:%d NOT company promoted or star promoted; company:%s, star:%s\n", 
