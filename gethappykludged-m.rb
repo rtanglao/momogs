@@ -36,6 +36,7 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lte" => metrics
           $stderr.printf("FOUND author:%s! Incrementing num_replies:%d\n", author,c[:num_replies]) 
           c[:num_replies] += 1
           author_found = true
+          break
         end
       end # contributors
       if !author_found
