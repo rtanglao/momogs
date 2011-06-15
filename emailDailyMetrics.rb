@@ -11,4 +11,4 @@ end_date_str = start_date_str
 
 stderrfile = 'emailReport.' + start_date + '.' + end_date + '.stderr'
 stdoutfile = 'emailReport.' + start_date + '.' + end_date + '.stdout'
-`./emailReport.rb #{start_date_str} #{end_date_str} 2>#{stderrfile} 1>#{stdoutfile}`
+`./emailReport-m.rb #{start_date_str} #{end_date_str} 2>#{stderrfile} 1>#{stdoutfile}`
