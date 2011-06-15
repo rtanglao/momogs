@@ -118,6 +118,30 @@ if File::exists?(urls_csvfile) && File.size(urls_csvfile) > 0
 end
 topicURLs = topicURLs + "</ol>"
 
+replyto_stderrfile = 'replyto.' + start_date + '.' + end_date + '.stderr'
+replyto_stdoutfile = 'replyto.' + start_date + '.' + end_date + '.stdout'
+printf(STDERR, "replyto stdout:%s\n", replyto_stdoutfile)
+# get the topics that roland needs to reply to
+`./unsolvedTopicsRepliedToInTheLastTwoWeeksThatIHaveRepliedToWithRepliesAfterMyReply.rb 2>#{replyto_stderrfile} 1>#{replyto_stdoutfile}`
+replytoURLs = "<ol>"
+if File::exists?(replyto_stdoutfile) && File.size(replyto_stdoutfile) > 0
+  File.open(replyto_stdoutfile, "r") do |infile|
+    while (line = infile.gets)
+      if line != "\n"
+        line.gsub!("\n","")
+        matchdata = /Please reply to: ([\S]*)/.match(line)
+        if matchdata.nil? || matchdata[1].nil? 
+          next
+        end
+        url = matchdata[1]
+        url_without_http_and_momo_bits = url.gsub("http://getsatisfaction.com/mozilla_messaging/topics/","")       
+        replytoURLs = replytoURLs + "<li>Please reply to: <a href=\""+ url + "\">"+url_without_http_and_momo_bits+"</a></li>"
+      end
+    end
+  end
+end
+replytoURLs = replytoURLs + "</ol>"
+
 email_config = ParseConfig.new('email.conf').params
 from = email_config['from_address']
 to = email_config['to_address']
@@ -131,6 +155,8 @@ Content-type: text/html
 subject: #{subject}
 Date: #{Time.now.rfc2822}
 
+<h3>Topics that Roland needs to reply to:</h3>
+#{replytoURLs}
 <h3>Get Satisfaction Top 5 active:</h3>
 <p>
 #{activeURLs}
