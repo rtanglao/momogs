@@ -50,11 +50,9 @@ metrics_start = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
 metrics_start -= 1
 metrics_stop =  Time.utc(ARGV[3], ARGV[4], ARGV[5], 23, 59)
 metrics_stop += 1
-roland_replies = 0
-non_roland_replies = 0
+
 topic_page = 0
 end_program = false
-repliesByUser={}
 
 while true
   topic_page += 1
