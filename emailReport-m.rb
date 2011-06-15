@@ -75,6 +75,7 @@ gethappy_stdoutfile = 'gethappy.' + start_date + '.' + end_date + '.stdout'
 gethappy_csv_file = "gethappykludged-m."+ARGV[0]+ARGV[1]+ARGV[2]+"."+ARGV[3]+ARGV[4]+ARGV[5] + ".csv"
 
 top_10_repliers = `head -n 10 #{gethappy_csv_file}`
+top_10_repliers = top_10_repliers.gsub(/([\d]*,)([\S]*)/,'\1<a href="http://getsatisfaction.com/people/\2">\2</a>')
 top_10_repliers.gsub!("\n","<br />")
 
 getrandom_stderrfile = 'getrandom.' + start_date + '.' + end_date + '.stderr'
