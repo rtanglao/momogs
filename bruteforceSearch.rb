@@ -55,8 +55,8 @@ end  # class Optparse
 def add_to_topics_array_if_missing(topics, tag_or_keyword,id,url,last_active_at)
   has_id = false 
   topics.each do |tt|
-    $stderr.printf("topic id:%d is already in topics[], comparing to id:%d\n",tt["id"],id)
-    if tt["id"] == id
+    $stderr.printf("topic id:%d is already in topics[], comparing to id:%d\n",tt[:id],id)
+    if tt[:id] == id
       $stderr.printf("tt[\"id\"] == id\n")
       has_id = true
       break
@@ -86,7 +86,7 @@ metrics_stop = Time.utc(ARGV[3], ARGV[4], ARGV[5], 23, 59)
 topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_stop}},
                   :fields => ["at_sfn", "id", "last_active_at", "fulltext", "reply_array", "tags_str"]).sort(
     [["last_active_at", Mongo::DESCENDING]]).each do |t|
-  id = t["id"]
+  id = t["id"].to_i
   fulltext =  t["fulltext"]
   reply_array = t["reply_array"]
   url = t["at_sfn"]
