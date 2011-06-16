@@ -9,7 +9,8 @@ require 'optparse/time'
 require 'ostruct'
 require 'mongo'
 
-tags_to_search_for = []
+topics = []
+
 class Optparse
   CODES = %w[iso-2022-jp shift_jis euc-jp utf8 binary]
   CODE_ALIASES = { "jis" => "iso-2022-jp", "sjis" => "shift_jis" }
@@ -51,6 +52,23 @@ class Optparse
   end  # parse()
 end  # class Optparse
 
+def add_to_topics_array_if_missing(topics, tag_or_keyword,id,url,last_active_at)
+  has_id = false 
+  topics.each do |tt|
+    $stderr.printf("topic id:%d is already in topics[], comparing to id:%d\n",tt["id"],id)
+    if tt["id"] == id
+      $stderr.printf("tt[\"id\"] == id\n")
+      has_id = true
+      break
+    end # t_id
+  end # topics.each
+  if !has_id
+    $stderr.printf("FOUND tag or keyword:%s that's not in topics[]; PUSHING onto topics: id:%d, url:%s, last_active_at:%s\n", 
+      tag_or_keyword, id, url, last_active_at)
+    topics.push({:id => id,:url => url, :last_active_at => last_active_at})
+  end # has_id
+end
+
 db = Mongo::Connection.new.db("gs") # no error checking  :-) assume Get Satisfaction Database is there on localhost
 topicsColl = db.collection("topics")
 
@@ -64,7 +82,6 @@ end
 metrics_start = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
 metrics_stop = Time.utc(ARGV[3], ARGV[4], ARGV[5], 23, 59)
 
-topics = []
 
 topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_stop}},
                   :fields => ["at_sfn", "id", "last_active_at", "fulltext", "reply_array", "tags_str"]).sort(
@@ -76,46 +93,21 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   tags_str = t["tags_str"]
   last_active_at = t["last_active_at"]
   $stderr.printf("CHECKING topic url:%s id:%d which was last active at at:%s\n",url,id,last_active_at)
-  #PP::pp(reply_array, $stderr)
 
   options.tags.each do |tag|
     $stderr.printf("SEARCHING for tag:%s in tags_str:%s\n",tag, tags_str)
     if tags_str.include? tag.downcase 
-      has_id = false 
-      topics.each do |tt|
-        $stderr.printf("topic id:%d is already in topics, comparing to id:%d\n",tt["id"],id)
-        if tt["id"] == id
-          $stderr.printf("tt[\"id\"] == id\n")
-          has_id = true
-          break
-        end # t_id
-      end # topics.each
-      if !has_id
-        $stderr.printf("Found tag:%s, PUSHING onto topics: id:%d, url:%s, last_active_at:%s\n", tag, id, url, last_active_at)
-        topics.push({:id => id,:url => url, :last_active_at => last_active_at})
-      end # has_id
+      add_to_topics_array_if_missing(topics, tag, id, url, last_active_at)
       break
-    end # tag_str
+    end # if tags_str.include?
   end #options.tags
 
   options.keywords.each do |k|
     $stderr.printf("SEARCHING for keyword:%s in tags_str:%s\n", k, fulltext)
-    if fulltext.include? k 
-      has_id = false 
-      topics.each do |tt|
-        $stderr.printf("topic id:%d is already in topics, comparing to id:%d\n",tt["id"],id)
-        if tt["id"] == id
-          $stderr.printf("tt[\"id\"] == id\n")
-          has_id = true
-          break
-        end # t_id
-      end # topics.each
-      if !has_id
-        $stderr.printf("Found keyword:%s, PUSHING onto topics: id:%d, url:%s, last_active_at:%s\n", k, id, url, last_active_at)
-        topics.push({:id => id,:url => url, :last_active_at => last_active_at})
-      end # has_id
+    if fulltext.include? k.downcase 
+      add_to_topics_array_if_missing(topics, k, id, url, last_active_at)
       break
-    end # tag_str
+    end # if fulltext.include?
   end #options.tags
 
 end #topicsColl.find
