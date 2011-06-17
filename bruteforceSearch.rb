@@ -31,11 +31,17 @@ class Optparse
       opts.separator ""
       opts.separator "Specific options:"
       # List of arguments.
-      opts.on("-t", "--tags x,y,z", Array, "Tags separated by commas") do |list|
+      opts.on("-t", "--tags x,y,z", Array, "Tags separated by commas (each tag will be ORed)") do |list|
         options.tags = list
       end
-      opts.on("-k", "--keywords x,y,z", Array, "Keywords separated by commas") do |list|
+      opts.on("-k", "--keywords x,y,z", Array, "Keywords separated by commas (each keyword will be ORed)") do |list|
         options.keywords = list
+      end
+      opts.on("-u", "--atags x,y,z", Array, "Tags separated by commas (each tag will be ANDed)") do |list|
+        options.atags = list
+      end
+      opts.on("-l", "--akeywords x,y,z", Array, "Keywords separated by commas (each keyword will be ANDed)") do |list|
+        options.akeywords = list
       end
     
       opts.separator ""
@@ -52,10 +58,14 @@ class Optparse
   end  # parse()
 end  # class Optparse
 
-def add_to_topics_array_if_missing(topics, tag_or_keyword,id,url,last_active_at)
+def add_to_topics_array_if_missing(topics, id, url, last_active_at)
   if !(topics.any? {|tt|tt[:id] == id})
     topics.push({:id => id,:url => url, :last_active_at => last_active_at})
   end
+end
+
+def remove_from_topics_array_if_present(topics, id)
+  topics.delete_if{|tt|tt[:id] == id}
 end
 
 db = Mongo::Connection.new.db("gs") # no error checking  :-) assume Get Satisfaction Database is there on localhost
@@ -83,14 +93,42 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   last_active_at = t["last_active_at"]
   $stderr.printf("CHECKING topic url:%s id:%d which was last active at at:%s\n",url,id,last_active_at)
 
+  boolean_or_match = false
   matched_tag = options.tags.detect {|tag|tags_str.include? tag.downcase}
   if matched_tag
-    add_to_topics_array_if_missing(topics, matched_tag, id, url, last_active_at)
+    boolean_or_match = true
   end
 
   matched_keyword = options.keywords.detect {|k|fulltext.include? k.downcase}
   if matched_keyword
-    add_to_topics_array_if_missing(topics, matched_keyword, id, url, last_active_at)
+    boolean_or_match = true
+  end
+  
+  if !boolean_or_match
+    next
+  end
+
+  add_to_topics_array_if_missing(topics, id, url, last_active_at)
+
+  if !options.atags.nil?
+    $stderr.printf("options.atags is NOT nil\n")
+    if options.atags.all? {|tag|tags_str.include? tag.downcase}
+      $stderr.printf("ATAGS; adding id:%d\n", id)
+      add_to_topics_array_if_missing(topics, id, url, last_active_at)
+    else
+      $stderr.printf("ATAGS; removing id:%d\n", id)
+      remove_from_topics_array_if_present(topics, id)
+    end
+  end
+
+  if !options.akeywords.nil?
+    if options.akeywords.all? {|k|fulltext.include? k.downcase}
+      $stderr.printf("AKEYWORDS; adding id:%d\n", id)
+      add_to_topics_array_if_missing(topics, id, url, last_active_at)
+    else
+      $stderr.printf("AKEYWORDS; removing id:%d\n", id)
+      remove_from_topics_array_if_present(topics, id)
+    end
   end
 
 end #topicsColl.find
