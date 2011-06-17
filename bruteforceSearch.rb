@@ -83,25 +83,19 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   last_active_at = t["last_active_at"]
   $stderr.printf("CHECKING topic url:%s id:%d which was last active at at:%s\n",url,id,last_active_at)
 
-  options.tags.each do |tag|
-    $stderr.printf("SEARCHING for tag:%s in tags_str:%s\n",tag, tags_str)
-    if tags_str.include? tag.downcase 
-      add_to_topics_array_if_missing(topics, tag, id, url, last_active_at)
-      break
-    end # if tags_str.include?
-  end #options.tags
+  matched_tag = options.tags.detect {|tag|tags_str.include? tag.downcase}
+  if matched_tag
+    add_to_topics_array_if_missing(topics, matched_tag, id, url, last_active_at)
+  end
 
-  options.keywords.each do |k|
-    $stderr.printf("SEARCHING for keyword:%s in tags_str:%s\n", k, fulltext)
-    if fulltext.include? k.downcase 
-      add_to_topics_array_if_missing(topics, k, id, url, last_active_at)
-      break
-    end # if fulltext.include?
-  end #options.tags
+  matched_keyword = options.keywords.detect {|k|fulltext.include? k.downcase}
+  if matched_keyword
+    add_to_topics_array_if_missing(topics, matched_keyword, id, url, last_active_at)
+  end
 
 end #topicsColl.find
 
-topics = topics.sort_by{|c|c[:id]}
+topics = topics.sort_by{|c|c[:last_active_at]}
 
 topics.reverse.each do |t|
   PP::pp(t, $stderr)
