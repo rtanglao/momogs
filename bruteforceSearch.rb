@@ -112,20 +112,15 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
 
   if !options.atags.nil?
     $stderr.printf("options.atags is NOT nil\n")
-    if options.atags.all? {|tag|tags_str.include? tag.downcase}
-      $stderr.printf("ATAGS; adding id:%d\n", id)
-      add_to_topics_array_if_missing(topics, id, url, last_active_at)
-    else
+    if !options.atags.all? {|tag|tags_str.include? tag.downcase}
       $stderr.printf("ATAGS; removing id:%d\n", id)
       remove_from_topics_array_if_present(topics, id)
+      next
     end
   end
 
   if !options.akeywords.nil?
-    if options.akeywords.all? {|k|fulltext.include? k.downcase}
-      $stderr.printf("AKEYWORDS; adding id:%d\n", id)
-      add_to_topics_array_if_missing(topics, id, url, last_active_at)
-    else
+    if !options.akeywords.all? {|k|fulltext.include? k.downcase}
       $stderr.printf("AKEYWORDS; removing id:%d\n", id)
       remove_from_topics_array_if_present(topics, id)
     end
