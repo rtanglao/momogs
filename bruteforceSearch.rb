@@ -53,20 +53,9 @@ class Optparse
 end  # class Optparse
 
 def add_to_topics_array_if_missing(topics, tag_or_keyword,id,url,last_active_at)
-  has_id = false 
-  topics.each do |tt|
-    $stderr.printf("topic id:%d is already in topics[], comparing to id:%d\n",tt[:id],id)
-    if tt[:id] == id
-      $stderr.printf("tt[\"id\"] == id\n")
-      has_id = true
-      break
-    end # t_id
-  end # topics.each
-  if !has_id
-    $stderr.printf("FOUND tag or keyword:%s that's not in topics[]; PUSHING onto topics: id:%d, url:%s, last_active_at:%s\n", 
-      tag_or_keyword, id, url, last_active_at)
+  if !(topics.any? {|tt|tt[:id] == id})
     topics.push({:id => id,:url => url, :last_active_at => last_active_at})
-  end # has_id
+  end
 end
 
 db = Mongo::Connection.new.db("gs") # no error checking  :-) assume Get Satisfaction Database is there on localhost
