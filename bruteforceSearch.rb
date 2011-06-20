@@ -43,7 +43,13 @@ class Optparse
       opts.on("-l", "--akeywords x,y,z", Array, "Keywords separated by commas (each keyword will be ANDed)") do |list|
         options.akeywords = list
       end
-    
+      opts.on("-r", "--fregex x,y,z", Array, "regexes for fulltext separated by commas (each regex will be ORed)") do |list|
+        options.fregexes = list
+      end
+      opts.on("-s", "--tregex x,y,z", Array, "regexes for tags separated by commas (each regex will be ORed)") do |list|
+        options.tregexes = list
+      end 
+   
       opts.separator ""
       opts.separator "Common options:"
 
@@ -74,7 +80,7 @@ topicsColl = db.collection("topics")
 options = Optparse.parse(ARGV)
 
 if ARGV.length < 6
-  puts "usage: #{$0} yyyy mm dd yyyy mmm dd -t tag1,tag2,tag3...tagn -k keyword1,keyword2,keyword3,keywordn"
+  puts "usage: #{$0} yyyy mm dd yyyy mmm dd -t tag1,tag2,tag3...tagn -k keyword1,keyword2,keyword3,keywordn -r regexforfulltext1,rgexforfulltext2 -s regexfortags1,regexfortags2"
   exit
 end
 
@@ -94,13 +100,40 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   $stderr.printf("CHECKING topic url:%s id:%d which was last active at at:%s\n",url,id,last_active_at)
 
   boolean_or_match = false
-  matched_tag = options.tags.detect {|tag|tags_str.include? tag.downcase}
-  if matched_tag
+  matched_keyword = nil
+  matched_tag = nil
+  matched_regex = nil
+
+  if !options.tags.nil?
+    matched_tag = options.tags.detect {|tag|tags_str.include? tag.downcase}
+    if matched_tag
+      boolean_or_match = true
+    end
+  end
+
+  if !boolean_or_match && !options.keywords.nil?
+    matched_keyword = options.keywords.detect {|k|fulltext.include? k.downcase}
+  end
+
+  if !matched_keyword.nil?
     boolean_or_match = true
   end
 
-  matched_keyword = options.keywords.detect {|k|fulltext.include? k.downcase}
-  if matched_keyword
+  if !boolean_or_match && !options.fregexes.nil?
+    regexes = options.fregexes.collect {|re_str|%r|#{re_str}|}
+    matched_regex = regexes.detect {|re|re.match fulltext}
+  end
+
+  if !matched_regex.nil?
+    boolean_or_match = true
+  end
+  
+  if !boolean_or_match && !options.tregexes.nil?
+    regexes = options.tregexes.collect {|re_str|%r|#{re_str}|}
+    matched_regex = regexes.detect {|re|re.match tags_str}
+  end
+
+  if !matched_regex.nil?
     boolean_or_match = true
   end
   
