@@ -8,7 +8,7 @@
 
 # Usage:
  
-## Daily email metrics (I run this twice a day, typically 9a.m. and 4p.m. Pacfic)
+## Daily email metrics (I run this twice a day, typically 9a.m. and 4p.m. Pacific)
 
     ./emailDailyMetrics.rb &
 
