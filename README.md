@@ -14,5 +14,4 @@
 
 ## Weekly Metrics to CSV files and stdout (run once a week to generate support metrics for the Thunderbird Project Call)
 
-    ./weeklyMetrics.rb 
-
+    ./weeklyMetrics.rb 2011 6 13 2011 6 19 2>13-19june2011.stderr.txt 1>13-19june2011.stdout.txt
