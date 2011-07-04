@@ -17,12 +17,15 @@ end_program = false
 topics_created_or_updated = 0
 gs_contributor = "rtanglao"
 # query in mongo shell:
-# db.topics.find({"created_at": {$gte: start23, $lt: end23},"status":{$nin:  
+# db.topics.find({"last_active_at": {$gte: start23, $lt: end23},"status":{$nin:  
 # ["complete","rejected"]},reply_array: { $elemMatch : { "author.canonical_name" : 
 # "rtanglao"}}},{"at_sfn": -1}) 
-topicsColl.find({"created_at" => {"$gte" => metrics_start, "$lt" => metrics_stop},
+topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_stop},
                   "status" => { "$nin" => ["complete","rejected"]},
                   "reply_array" => { "$elemMatch"  => { "author.canonical_name" => gs_contributor}}}).each do |t|
+  $stderr.printf("***START of topic\n")
+  PP::pp(t,$stderr)
+  $stderr.printf("***END of topic\n")
   $stderr.printf("CHECKING topic url:%s id:%d which was created at:%s\n",t["at_sfn"],t["id"], t["created_at"].to_s)
   # search this topics replies to see if the last reply is by gs_contributor, if it's not then gs_contributor should reply
   newest_reply_time = Time.utc(2009,1,1) # since all topics in the database were created after july 20, 2009
