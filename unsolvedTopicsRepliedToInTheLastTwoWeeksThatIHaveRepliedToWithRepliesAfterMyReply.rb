@@ -23,6 +23,10 @@ gs_contributor = "rtanglao"
 topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_stop},
                   "status" => { "$nin" => ["complete","rejected"]},
                   "reply_array" => { "$elemMatch"  => { "author.canonical_name" => gs_contributor}}}).each do |t|
+  # if the topic is tagged "rtcloseme" then skip it to get around GS's lack of a "close topic" feature
+  if t["tags_str"].include?("rtcloseme")
+    next
+  end
   $stderr.printf("***START of topic\n")
   PP::pp(t,$stderr)
   $stderr.printf("***END of topic\n")
