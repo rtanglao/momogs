@@ -166,6 +166,6 @@ topics = topics.sort_by{|c|c[:last_active_at]}
 
 topics.reverse.each do |t|
   PP::pp(t, $stderr)
-  printf("%s,%d,%s\n",t[:url], t[:subject],t[:id], t[:last_active_at])
+  printf("%s,%s,%d,%s\n",t[:url], t[:subject],t[:id], t[:last_active_at])
 end
 
