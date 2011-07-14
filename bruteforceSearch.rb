@@ -64,9 +64,9 @@ class Optparse
   end  # parse()
 end  # class Optparse
 
-def add_to_topics_array_if_missing(topics, id, url, last_active_at)
+def add_to_topics_array_if_missing(topics, id, url, last_active_at, subject)
   if !(topics.any? {|tt|tt[:id] == id})
-    topics.push({:id => id,:url => url, :last_active_at => last_active_at})
+    topics.push({:id => id,:url => url, :last_active_at => last_active_at, :subject => subject})
   end
 end
 
@@ -89,7 +89,7 @@ metrics_stop = Time.utc(ARGV[3], ARGV[4], ARGV[5], 23, 59)
 
 
 topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_stop}},
-                  :fields => ["at_sfn", "id", "last_active_at", "fulltext", "reply_array", "tags_str"]).sort(
+                  :fields => ["at_sfn", "id", "last_active_at", "fulltext", "reply_array", "tags_str", "subject"]).sort(
     [["last_active_at", Mongo::DESCENDING]]).each do |t|
   id = t["id"].to_i
   fulltext =  t["fulltext"]
@@ -97,6 +97,7 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   url = t["at_sfn"]
   tags_str = t["tags_str"]
   last_active_at = t["last_active_at"]
+  subject = t["subject"]
   $stderr.printf("CHECKING topic url:%s id:%d which was last active at at:%s\n",url,id,last_active_at)
 
   boolean_or_match = false
@@ -141,7 +142,7 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
     next
   end
 
-  add_to_topics_array_if_missing(topics, id, url, last_active_at)
+  add_to_topics_array_if_missing(topics, id, url, last_active_at, subject)
 
   if !options.atags.nil?
     $stderr.printf("options.atags is NOT nil\n")
@@ -165,6 +166,6 @@ topics = topics.sort_by{|c|c[:last_active_at]}
 
 topics.reverse.each do |t|
   PP::pp(t, $stderr)
-  printf("url: %s id: %d last_active_at:%s\n",t[:url], t[:id], t[:last_active_at])
+  printf("%s,%d,%s\n",t[:url], t[:subject],t[:id], t[:last_active_at])
 end
 
