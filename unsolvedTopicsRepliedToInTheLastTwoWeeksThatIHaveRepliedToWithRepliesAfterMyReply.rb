@@ -22,10 +22,12 @@ gs_contributor = "rtanglao"
 # "rtanglao"}}},{"at_sfn": -1}) 
 topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_stop},
                   "status" => { "$nin" => ["complete","rejected"]},
-                  "reply_array" => { "$elemMatch"  => { "author.canonical_name" => gs_contributor}}}).each do |t|
+                  "reply_array" => { "$elemMatch"  => { "author.canonical_name" => gs_contributor}}},
+                  :fields => ["at_sfn", "id", "created_at", "last_active_at", "fulltext", "reply_array", "tags_str"]).each do |t|
   # if the topic is tagged "rtcloseme" then skip it to get around GS's lack of a "close topic" feature
   # if the topic is tagged "rtnothingtoadd" then skip it as i have nothing further to add to a topic (used for RFE topics)
   if t["tags_str"].include?("rtcloseme") ||  t["tags_str"].include?("rtnothingtoadd")
+    $stderr.printf("topic:%s has tag rtcloseme or rtnothingtoadd, SKIPPING\n",t["at_sfn"])
     next
   end
   $stderr.printf("***START of topic\n")
