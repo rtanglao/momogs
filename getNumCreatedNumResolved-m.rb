@@ -32,12 +32,15 @@ topicsColl.find({"created_at" => {"$gte" => metrics_start, "$lte" => metrics_sto
 end
 
 resolved_topics_per_day={}
-topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lte" => metrics_stop},
+topicsColl.find({"created_at" => {"$lte" => metrics_stop},
                 "status" => "complete"}, 
-                :fields => ["at_sfn", "id", "last_active_at"]).sort([["last_active_at", Mongo::ASCENDING]]).each do |t|
+                :fields => ["created_at", "at_sfn", "id", "last_active_at"]).sort([["last_active_at", Mongo::ASCENDING]]).each do |t|
   url = t["at_sfn"]
   last_active_at = t["last_active_at"]
-  $stderr.printf("RESOLVED TOPIC id:%d, url:%s, created_at:%s\n", t["id"],url, last_active_at)
+  if ((last_active_at <=> metrics_start) < 0) || ((last_active_at <=> metrics_stop) > 0)
+    next
+  end
+  $stderr.printf("RESOLVED TOPIC id:%d, url:%s, last_active_at:%s\n", t["id"],url, last_active_at)
   last_active_at_index = last_active_at.strftime("%Y%m%d")
   if resolved_topics_per_day.has_key?(last_active_at_index)
     resolved_topics_per_day[last_active_at_index] += 1
