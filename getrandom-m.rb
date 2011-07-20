@@ -21,7 +21,7 @@ db = Mongo::Connection.new.db("gs") # no error checking  :-) assume Get Satisfac
 topicsColl = db.collection("topics")
 
 topics_array = []
-topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lte" => metrics_stop}
+topicsColl.find({"created_at" => {"$gte" => metrics_start, "$lte" => metrics_stop}
                 }, :fields => ["at_sfn", "id"]).each do |t|
   url = t["at_sfn"]
   $stderr.printf("topic:%d, url:%s\n", t["id"],url)
