@@ -18,8 +18,9 @@ db = Mongo::Connection.new.db("gs") # no error checking  :-) assume Get Satisfac
 topicsColl = db.collection("topics")
 
 updated_topics = []
-topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lte" => metrics_stop},
-                 "reply_array" => { "$elemMatch"  => { "created_at" =>  {"$gte" => metrics_start, "$lte" => metrics_stop }}}}
+topicsColl.find({"reply_array" => { "$elemMatch"  => 
+                    { "created_at" =>  {"$gte" => metrics_start, "$lte" => metrics_stop }}}},
+                  :fields => ["at_sfn", "id", "reply_count", "reply_array"]
                 ).each do |t|
   $stderr.printf("topic:%d, reply_count:%d\n", t["id"], t["reply_count"])
   url = t["at_sfn"]
