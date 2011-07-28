@@ -23,6 +23,6 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   PP::pp(t,$stderr)
   $stderr.printf("***END of topic\n")
   $stderr.printf("FOUND topic url:%s id:%d which was last_active_at at:%s\n",t["at_sfn"],t["id"], t["last_active_at"].to_s)
-  printf("%s,%s\n",t["subject"],t["at_sfn"])
+  printf("%s,%s\n",t["subject"].gsub(","," - ")[0..79],t["at_sfn"])
 
 end # topic iterator
