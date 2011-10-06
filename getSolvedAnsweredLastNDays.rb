@@ -42,7 +42,24 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   $stderr.printf("***START of topic\n")
   PP::pp(t,$stderr)
   $stderr.printf("***END of topic\n")
-  $stderr.printf("FOUND topic url:%s id:%d which was last_active_at at:%s\n",t["at_sfn"],t["id"], t["last_active_at"].to_s)
-  printf("%s,%s\n",t["subject"].gsub(","," - ")[0..79],t["at_sfn"])
+  # A topic is answered in the time period if and only if:
+  #   the first status_update_time to be "complete" is within in the time period
+  t["synthetic_status_journal"].each do |status_journal|
+    if status_journal["status"] == "complete"
+      update_time = status_journal["status_update_time"]
+      if (update_time <=> metrics_start) >= 0 && (update_time <=> metrics_stop) == -1
+        $stderr.printf(
+      "1st status update time:%s with \"complete\" status IS in time period! topic url:%s id:%d which was last_active_at at:%s\n",
+          update_time.to_s,t["at_sfn"],t["id"], t["last_active_at"].to_s)
+        printf("%s,%s\n",t["subject"].gsub(","," - ")[0..79],t["at_sfn"])
+        break
+      else
+        $stderr.printf(
+      "1st status update time:%s with \"complete\" status IS NOT in time period! topic url:%s id:%d which was last_active_at at:%s\n",
+          update_time.to_s,t["at_sfn"],t["id"], t["last_active_at"].to_s)
+        break
+      end # if update_time
+    end # if status_journal
+  end # do status_journal
 
 end # topic iterator
