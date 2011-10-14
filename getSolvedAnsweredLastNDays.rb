@@ -5,6 +5,9 @@ require 'pp'
 require 'time'
 require 'date'
 require 'mongo'
+require 'tlsmail'
+require 'date'
+require 'parseconfig'
 
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
@@ -33,9 +36,11 @@ metrics_stop = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
 number_of_days_to_look_for_answered_topics = ARGV[3].to_i
 metrics_start = metrics_stop - (number_of_days_to_look_for_answered_topics * 60 * 60 * 24) 
 
+personPlusSolvedURLs = "<ol>"
+
 topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_stop},
                   "status" => "complete"},
-                  :fields => ["last_active_at", "at_sfn", "id", "subject", "synthetic_status_journal"]).each do |t|
+                  :fields => ["last_active_at", "at_sfn", "id", "subject", "synthetic_status_journal","author"]).each do |t|
   $stderr.printf("***START of topic\n")
   PP::pp(t,$stderr)
   $stderr.printf("***END of topic\n")
@@ -44,6 +49,34 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   sj = t["synthetic_status_journal"].detect {|status_journal|status_journal["status"] == "complete" }
   if sj && (sj["status_update_time"] <=> metrics_start) >= 0 && 
        (sj["status_update_time"] <=> metrics_stop) == -1
-    printf("%s,%s\n",t["subject"].gsub(","," - ")[0..79],t["at_sfn"])
+    $stderr.printf("SOLVED topic in time period title:%s url:%s\n",t["subject"].gsub(","," - ")[0..79],t["at_sfn"])
+    personPlusSolvedURLs = personPlusSolvedURLs + "<li>Please contact:"+"<a href=\"http://getsatisfaction.com/people/"+
+      t["author"]["canonical_name"]+"\">"+t["author"]["canonical_name"]+"</a> about:"+
+      "<a href=\""+ t["at_sfn"] + "\">"+t["subject"]+"</a></li>"
   end
 end # topic iterator
+personPlusSolvedURLs = personPlusSolvedURLs + "</ol>"
+
+email_config = ParseConfig.new('email.conf').params
+from = email_config['from_address']
+to = email_config['to_address']
+p = email_config['p']
+subject = "People whose topics were solved FROM: %d.%d.%d back %d days" % [ARGV[0],ARGV[1],ARGV[2],ARGV[3]]
+content = <<EOF
+From: #{from}
+To: #{to}
+MIME-Version: 1.0
+Content-type: text/html
+subject: #{subject}
+Date: #{Time.now.rfc2822}
+
+<h3>People whose topics were marked solved</h3>
+#{personPlusSolvedURLs}
+
+EOF
+print 'content', content
+
+Net::SMTP.enable_tls(OpenSSL::SSL::VERIFY_NONE)  
+Net::SMTP.start('smtp.gmail.com', 587, 'gmail.com', from, p, :login) do |smtp| 
+  smtp.send_message(content, from, to)
+end
