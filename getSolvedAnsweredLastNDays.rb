@@ -24,17 +24,14 @@ end
 
 topicsColl = db.collection("topics")
 
-if ARGV.length < 1
-  puts "usage: #{$0} [number_of_days]"
+if ARGV.length < 4
+  puts "usage: #{$0} yyyy mm dd [number_of_days]"
   exit
 end
 
-metrics_stop =  Time.now
-number_of_days_to_look_for_answered_topics = ARGV[0].to_i
-
+metrics_stop = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
+number_of_days_to_look_for_answered_topics = ARGV[3].to_i
 metrics_start = metrics_stop - (number_of_days_to_look_for_answered_topics * 60 * 60 * 24) 
-
-end_program = false
 
 topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_stop},
                   "status" => "complete"},
