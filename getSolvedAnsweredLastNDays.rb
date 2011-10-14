@@ -45,13 +45,15 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   PP::pp(t,$stderr)
   $stderr.printf("***END of topic\n")
   # A topic is answered in the time period if and only if:
-  #   the first status_update_time to be "complete" is within in the time period
+  # the first status_update_time to be "complete" is within in the time period
+  # SMALL BUG: this fails if MongoDB was updated more than a day AFTER the topic was marked solved in Get Satisfaction 
+  # LUCKILY this only happens with very old solved topics and is therefore rare
   sj = t["synthetic_status_journal"].detect {|status_journal|status_journal["status"] == "complete" }
   if sj && (sj["status_update_time"] <=> metrics_start) >= 0 && 
        (sj["status_update_time"] <=> metrics_stop) == -1
     $stderr.printf("SOLVED topic in time period title:%s url:%s\n",t["subject"].gsub(","," - ")[0..79],t["at_sfn"])
-    personPlusSolvedURLs = personPlusSolvedURLs + "<li>Please contact:"+"<a href=\"http://getsatisfaction.com/people/"+
-      t["author"]["canonical_name"]+"\">"+t["author"]["canonical_name"]+"</a> about:"+
+    personPlusSolvedURLs = personPlusSolvedURLs + "<li>Please contact:"+"<a href=\""+t["author"]["at_sfn"]+
+      "\">"+t["author"]["canonical_name"]+"</a> about:"+
       "<a href=\""+ t["at_sfn"] + "\">"+t["subject"]+"</a></li>"
   end
 end # topic iterator
