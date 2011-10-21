@@ -48,8 +48,13 @@ class Optparse
       end
       opts.on("-s", "--tregex x,y,z", Array, "regexes for tags separated by commas (each regex will be ORed)") do |list|
         options.tregexes = list
-      end 
-   
+      end    
+      opts.on("-x", "--xregex x,y,z", Array, "regexes for fulltext separated by commas (each regex will be NOTed)") do |list|
+        options.xregexes = list
+      end
+      opts.on("-y", "--yregex x,y,z", Array, "regexes for tags separated by commas (each regex will be NOTed)") do |list|
+        options.yregexes = list
+      end
       opts.separator ""
       opts.separator "Common options:"
 
@@ -168,6 +173,26 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
     if !options.akeywords.all? {|k|fulltext.include? k.downcase}
       $stderr.printf("AKEYWORDS; removing id:%d\n", id)
       remove_from_topics_array_if_present(topics, id)
+      next
+    end
+  end
+
+  if !options.yregexes.nil?
+    $stderr.printf("options.yregexes is NOT nil\n")
+    regexes = options.yregexes.collect {|re_str|%r|#{re_str}|}
+    if regexes.detect {|re|re.match fulltext}
+      $stderr.printf("YREGEXES; removing id:%d\n", id)
+      remove_from_topics_array_if_present(topics, id)
+      next
+    end
+  end
+
+  if !options.xregexes.nil?
+    regexes = options.xregexes.collect {|re_str|%r|#{re_str}|}
+    if regexes.detect {|re|re.match tags_str}
+      $stderr.printf("XREGEXES; removing id:%d\n", id)
+      remove_from_topics_array_if_present(topics, id)
+      next
     end
   end
 
@@ -177,6 +202,6 @@ topics = topics.sort_by{|c|c[:last_active_at]}
 
 topics.reverse.each do |t|
   PP::pp(t, $stderr)
-  printf("%s,%s,%d,%s\n",t[:url], t[:subject],t[:id], t[:last_active_at])
+  printf("%s , %s , %d , %s\n",t[:url], t[:subject],t[:id], t[:last_active_at])
 end
 
