@@ -115,44 +115,40 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
   subject = t["subject"]
   $stderr.printf("CHECKING topic url:%s id:%d which was last active at at:%s\n",url,id,last_active_at)
 
-  boolean_or_match = false
+  boolean_or_match = true
   matched_keyword = nil
   matched_tag = nil
   matched_regex = nil
 
   if !options.tags.nil?
-    matched_tag = options.tags.detect {|tag|tags_str.include? tag.downcase}
-    if matched_tag
-      boolean_or_match = true
+    if !options.tags.detect {|tag|tags_str.include? tag.downcase}
+      boolean_or_match = false
     end
   end
 
-  if !boolean_or_match && !options.keywords.nil?
+  if !options.keywords.nil?
     matched_keyword = options.keywords.detect {|k|fulltext.include? k.downcase}
+    if matched_keyword.nil?
+      boolean_or_match = false
+    end
   end
 
-  if !matched_keyword.nil?
-    boolean_or_match = true
-  end
-
-  if !boolean_or_match && !options.fregexes.nil?
+  if !options.fregexes.nil?
     regexes = options.fregexes.collect {|re_str|%r|#{re_str}|}
     matched_regex = regexes.detect {|re|re.match fulltext}
+    if matched_regex.nil?
+     boolean_or_match = false
+    end
   end
 
-  if !matched_regex.nil?
-    boolean_or_match = true
-  end
-  
-  if !boolean_or_match && !options.tregexes.nil?
+  if !options.tregexes.nil?
     regexes = options.tregexes.collect {|re_str|%r|#{re_str}|}
     matched_regex = regexes.detect {|re|re.match tags_str}
+    if matched_regex.nil?
+      boolean_or_match = false
+    end
   end
 
-  if !matched_regex.nil?
-    boolean_or_match = true
-  end
-  
   if !boolean_or_match
     next
   end
