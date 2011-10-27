@@ -7,7 +7,6 @@ require 'date'
 require 'mongo'
 require 'getGSTopicsAfter'
 
-
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
 MONGO_PORT = ENV["MONGO_PORT"]
@@ -25,12 +24,16 @@ if !auth
 end
 
 topicsColl = db.collection("topics")
-
+if ARGV[0] && ARGV[0] == "-v"
+  verbose_logging = true
+else
+  verbose_logging = false
+end
 
 while true
   metrics_start = Time.now() - (30 * 60) # 30 minutes
-  $stderr.printf("POLLING at:%s going back 30 minutes\n", metrics_start)
-  getGSTopicsAfter(metrics_start, topicsColl)
+  $stderr.printf("POLLING at:%s going back 30 minutes\n", Time.now)
+  getGSTopicsAfter(metrics_start, topicsColl, verbose_logging)
   $stderr.printf("SLEEPING at:%s for 15 minutes\n", Time.now)
   sleep(15 * 60) # 15 minutes
 end

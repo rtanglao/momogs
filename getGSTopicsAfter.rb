@@ -1,13 +1,13 @@
 require 'getGSResponse'
 
-def getGSTopicsAfter(metrics_start, topicsColl)
+def getGSTopicsAfter(metrics_start, topicsColl, verbose_logging)
   topic_page = 0
   topic_before_start_time = false
   while true
     topic_page += 1
     skip = false
     topic_url = "products/mozilla_thunderbird/topics.json?sort=recently_active&page=" << "%d" % topic_page << "&limit=30"
-    printf(STDERR, "topic_url")
+    printf(STDERR, "topic_url:%s\n", topic_url)
     begin
       topics = getResponse(topic_url)
     rescue JSON::ParserError
@@ -45,9 +45,11 @@ def getGSTopicsAfter(metrics_start, topicsColl)
       topic["fulltext_with_tags"] = ""
       topic["tags_str"] = ""
       topic["synthetic_status_journal"] = []
-      printf(STDERR, "START*** of topic\n")
-      PP::pp(topic,$stderr)
-      printf(STDERR, "\nEND*** of topic\n")
+      if verbose_logging
+        printf(STDERR, "START*** of topic\n")
+        PP::pp(topic,$stderr)
+        printf(STDERR, "\nEND*** of topic\n")
+      end
       topic_text = topic["subject"].downcase + " " + topic["content"].downcase
       status = topic["status"]
       status_update_time = last_active_at   
@@ -75,10 +77,12 @@ def getGSTopicsAfter(metrics_start, topicsColl)
             $stderr.printf("JSON error SKIPPING to next page of replies, reply_count:%d\n", reply_count)
             next
           end
-          replies["data"].each do|reply|    
-            printf(STDERR, "START*** of reply\n")
-            PP::pp(reply, $stderr)
-            printf(STDERR, "\nEND*** of reply\n")
+          replies["data"].each do|reply|
+            if verbose_logging    
+              printf(STDERR, "START*** of reply\n")
+              PP::pp(reply, $stderr)
+              printf(STDERR, "\nEND*** of reply\n")
+            end
             author = reply["author"]["canonical_name"]
             reply_created_time = Time.parse(reply["created_at"])
             reply_created_time = reply_created_time.utc
@@ -123,10 +127,12 @@ def getGSTopicsAfter(metrics_start, topicsColl)
           $stderr.printf("TAG COUNT:%d\n",tag_count)
         end
         if tag_count > 0 
-          tags["data"].each do|tag|    
-            printf(STDERR, "START*** of tag\n")
-            PP::pp(tag, $stderr)
-            printf(STDERR, "\nEND*** of tag\n")
+          tags["data"].each do|tag|
+            if verbose_logging    
+              printf(STDERR, "START*** of tag\n")
+              PP::pp(tag, $stderr)
+              printf(STDERR, "\nEND*** of tag\n")
+            end
             tag_name = tag["name"].downcase
             if tag_name.length < 80
               topic["tags_array"].push(tag_name)

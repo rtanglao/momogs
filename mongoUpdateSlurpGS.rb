@@ -8,7 +8,7 @@ require 'mongo'
 require 'getGSTopicsAfter'
 
 if ARGV.length < 6
-  puts "usage: #{$0} yyyy mm dd yyyy mmm dd"
+  puts "usage: #{$0} yyyy mm dd yyyy mmm dd -v"
   exit
 end
 
@@ -33,4 +33,9 @@ topicsColl = db.collection("topics")
 metrics_start = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
 metrics_stop =  Time.utc(ARGV[3], ARGV[4], ARGV[5], 23, 59)
 
-getGSTopicsAfter(metrics_start, topicsColl)
+if ARGV[6] && ARGV[6] == "-v"
+  verbose_logging = true
+else
+  verbose_logging = false
+end
+getGSTopicsAfter(metrics_start, topicsColl, verbose_logging)
