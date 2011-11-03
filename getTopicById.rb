@@ -3,6 +3,7 @@ require 'rubygems'
 require 'json'
 require 'net/http'
 require 'pp'
+require 'awesome_print'
 require 'time'
 require 'date'
 
@@ -166,5 +167,5 @@ while tag_count > 0
   tags_page += 1                   
 end # while tag_count > 0
 
-pp topic
+ap topic, :indent => -2
 
