@@ -2,23 +2,10 @@ require 'getGSResponse'
 def getGSRepliesForTopic(topic, reply_count, verbose_logging)
   reply_page = 1       
   while reply_count > 0
-    get_reply_url = "topics/" + topic["slug"] + 
-      "/replies.json?sort=recently_created&page=" << "%d" % reply_page << "&limit=30"
+    get_reply_url = "topics/" + topic["slug"] + "/replies.json"
     PP::pp(get_reply_url, $stderr)
-    skip = false
-    begin 
-      replies = getResponse(get_reply_url)
-    rescue JSON::ParserError
-      printf(STDERR, "Parser error in reply:%s\n", get_reply_url)
-      reply_count -= 30
-      reply_page += 1
-      skip = true
-    end
-    if skip
-      skip = false 
-      $stderr.printf("JSON error SKIPPING to next page of replies, reply_count:%d\n", reply_count)
-      next
-    end
+    replies = getResponse(get_reply_url, 
+      {:sort => "recently_created", :page => reply_page, :limit => 30})
     replies["data"].each do|reply|
       if verbose_logging    
         printf(STDE  RR, "START*** of reply\n")

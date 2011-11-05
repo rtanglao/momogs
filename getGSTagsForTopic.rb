@@ -4,21 +4,10 @@ def getGSTagsForTopic(topic, verbose_logging)
   tag_count = 1 # kludge
   first_tag_page = true
   while tag_count > 0         
-    get_tags_url = "topics/" + topic["slug"] + "/tags.json?page=" << "%d" % tags_page << "&limit=30"
+    get_tags_url = "topics/" + topic["slug"] + "/tags.json"
     PP::pp(get_tags_url, $stderr)
-    skip = false
-    begin 
-      tags = getResponse(get_tags_url)
-    rescue JSON::ParserError
-      printf(STDERR, "Parser error in HTTP GET of tag url:%s\n", get_tags_url)
-      tag_count -= 30
-      tags_page += 1
-      skip = true
-    end
-    if skip
-      skip = false
-      next
-    end         
+    tags = getResponse(get_tags_url, 
+      {:sort => "recently_created", :page => tags_page, :limit => 30})
     if first_tag_page
       tag_count = tags["total"]
       topic["tag_count"] = tag_count

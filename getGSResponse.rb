@@ -1,21 +1,16 @@
 require 'rubygems'
-require 'json'
-require 'net/http'
 require 'pp'
+require 'nestful'
 
-def getResponse(url)
-
-  http = Net::HTTP.new("api.getsatisfaction.com",80)
-
-  url = "/" + url 
-
+def getResponse(url, params)
+  url = "http://api.getsatisfaction.com/" + url
   try1 = true
-
   begin
-    resp, data = http.get(url, nil)
-  rescue Timeout::Error => e
+    resp = Nestful.get url, :format => :json, :params => params
+  rescue Nestful::TimeoutError
     if try1
       $stderr.printf("retrying after HTTP GET Timeout EXCEPTION, url:%s\n",url)
+      sleep(1)
       try1 = false
       retry
     else
@@ -23,14 +18,6 @@ def getResponse(url)
       raise
     end
   end
-   
-  if resp.code != "200"
-    printf(STDERR, "getResponse Parser Error: #%d from:%s\n", resp.code, url)
-    raise JSON::ParserError    # this is a kludge, should raise a proper exception!!!!!
-    return ""
-  end
-
-  result = JSON.parse(data)
-  return result
+  return resp
 end
 

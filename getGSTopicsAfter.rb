@@ -8,21 +8,10 @@ def getGSTopicsAfter(metrics_start, topicsColl, verbose_logging)
   topic_before_start_time = false
   while true
     topic_page += 1
-    skip = false
-    topic_url = "products/mozilla_thunderbird/topics.json?sort=recently_active&page=" << "%d" % topic_page << "&limit=30"
-    printf(STDERR, "topic_url:%s\n", topic_url)
-    begin
-      topics = getResponse(topic_url)
-    rescue JSON::ParserError
-      printf(STDERR, "Parser error in topic:%s\n", topic_url)
-      skip = true
-    end
-    if skip
-      skip = false
-      next
-    end
+    $stderr.printf("HTTP GET page:%d of companies/mozilla_messaging/products/mozilla_thunderbird/topics.json\n", topic_page)
+    topics = getResponse("companies/mozilla_messaging/products/mozilla_thunderbird/topics.json", 
+      {:sort => "recently_active", :page => topic_page, :limit => 30})
     topics["data"].each do|topic|
-      topic_url = "http://getsatisfaction.com/mozilla_messaging/topics/" + topic["slug"]
       last_active_at = Time.parse(topic["last_active_at"])
       last_active_at = last_active_at.utc
       printf(STDERR, "TOPIC last_active_at:%s\n", last_active_at)
