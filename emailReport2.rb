@@ -9,6 +9,12 @@ require 'date'
 require 'parseconfig'
 require 'mongo'
 
+def createLink(url, title, length)
+
+return "<a title=\""+title+"\""+
+     " href=\""+ url + "\">"+title[0..length-1]+"</a>"
+end
+
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
 MONGO_PORT = ENV["MONGO_PORT"]
@@ -65,9 +71,12 @@ active_topics = active_topics.sort_by{|h|h[:reply_count]}
 active_html = "<ol>"
 active_topics.reverse.each{|t|
   active_html = active_html + "<li>"+
-    t[:reply_count].to_s+
-    ",<a title=\""+t[:topic]["subject"]+"\""+
-     " href=\""+ t[:topic]["at_sfn"] + "\">"+t[:topic]["subject"][0..40]+"</a></li>"
+    t[:reply_count].to_s+","+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + " t:"
+  t[:topic]["tags_array"].each do |tag|
+    active_html = active_html + createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
+      tag, 16) + " "              
+  end
+  active_html = active_html + "</li>"
 }
 active_html = active_html + "</ol>"
 
@@ -83,7 +92,6 @@ MIME-Version: 1.0
 Content-type: text/html
 subject: #{subject}
 Date: #{Time.now.rfc2822}
-
 
 <h3>Get Satisfaction Top 5 Active:</h3>
 <p>
