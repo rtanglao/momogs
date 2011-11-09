@@ -90,8 +90,8 @@ end
 active_topics = active_topics.sort_by{|h|h[:reply_count]}
 active_html = ""
 active_topics.reverse.each do |t|
-  active_html = "<tr>" + active_html
-  active_html = active_html + "<td>"+
+  $stderr.printf("active_html:%s\n", active_html)
+  active_html = active_html + "<tr><td>"+
     t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
     active_html = active_html + createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
