@@ -9,11 +9,30 @@ require 'date'
 require 'parseconfig'
 require 'mongo'
 
-def createLink(url, title, length)
+providers = []
+regexes = []
 
-return "<a title=\""+title+"\""+
+def check_for_providers(text, regexes, providers)
+  provider_mentions = []
+  regexes.each_with_index do |re,i|
+    if re.match text 
+      provider_mentions.push(providers[i])
+    end
+  end
+  return provider_mentions
+end
+
+def createLink(url, title, length)
+  return "<a title=\""+title+"\""+
      " href=\""+ url + "\">"+title[0..length-1]+"</a>"
 end
+
+f = File.open("mailProviderRegex.txt") or die "Unable to open mailProviderRegex.txt..."
+mailProviderRegexStr = [] 
+f.each_line {|line| mailProviderRegexStr.push line.gsub(/\n/, "")}
+regexes = mailProviderRegexStr.collect {|re_str|%r|#{re_str}|}
+providers =  mailProviderRegexStr.collect {|re_str|re_str.gsub(/\W/,"")}
+
 
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
@@ -47,11 +66,11 @@ active_topics = []
 #   number of replies, url, subject, top 5 tags, top 5 mail providers, top 5 isps 
 topicsColl.find({"reply_array" => { "$elemMatch"  => 
                     { "created_at" =>  {"$gte" => metrics_start, "$lte" => metrics_stop }}}},
-                  :fields => ["at_sfn", "id", "reply_count", "reply_array", "subject", "fulltext", "tags_array"]
+                  :fields => ["at_sfn", "id", "reply_count", "reply_array", "subject", "fulltext_with_tags", "tags_array"]
                 ).each do |t|
   url = t["at_sfn"]
   subject = t["subject"]
-  fulltext = t["fulltext"]
+  fulltext_with_tags = t["fulltext_with_tags"]
   tags_array = t["tags_array"]
   reply_count_for_time_period = 0
   t["reply_array"].each do |r|
@@ -64,12 +83,13 @@ topicsColl.find({"reply_array" => { "$elemMatch"  =>
     end    
   end
   if reply_count_for_time_period > 0
-    active_topics.push({:reply_count => reply_count_for_time_period,:topic => t})
+    provider_mentions = check_for_providers(fulltext_with_tags, regexes, providers)
+    active_topics.push({:provider_mentions => provider_mentions, :reply_count => reply_count_for_time_period,:topic => t})
   end
 end
 active_topics = active_topics.sort_by{|h|h[:reply_count]}
 active_html = ""
-active_topics.reverse.each{|t|
+active_topics.reverse.each do |t|
   active_html = "<tr>" + active_html
   active_html = active_html + "<td>"+
     t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
@@ -77,8 +97,10 @@ active_topics.reverse.each{|t|
     active_html = active_html + createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
       tag, 16) + " "              
   end
+  active_html = active_html + "</td><td>"
+  t[:provider_mentions].each{|p| active_html = active_html + p[0..15] + " " }
   active_html = active_html + "</td></tr>"
-}
+end
 
 email_config = ParseConfig.new('email.conf').params
 from = email_config['from_address']
@@ -100,6 +122,7 @@ Date: #{Time.now.rfc2822}
 <th>replies</th>
 <th>url</th>
 <th>t</th>
+<th>p</th>
 </tr>
 #{active_html}
 </table>
