@@ -68,17 +68,17 @@ topicsColl.find({"reply_array" => { "$elemMatch"  =>
   end
 end
 active_topics = active_topics.sort_by{|h|h[:reply_count]}
-active_html = "<ol>"
+active_html = ""
 active_topics.reverse.each{|t|
-  active_html = active_html + "<li>"+
-    t[:reply_count].to_s+","+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + " t:"
+  active_html = "<tr>" + active_html
+  active_html = active_html + "<td>"+
+    t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
     active_html = active_html + createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
       tag, 16) + " "              
   end
-  active_html = active_html + "</li>"
+  active_html = active_html + "</td></tr>"
 }
-active_html = active_html + "</ol>"
 
 email_config = ParseConfig.new('email.conf').params
 from = email_config['from_address']
@@ -95,7 +95,14 @@ Date: #{Time.now.rfc2822}
 
 <h3>Get Satisfaction Top 5 Active:</h3>
 <p>
+<table border="1">
+<tr>
+<th>replies</th>
+<th>url</th>
+<th>t</th>
+</tr>
 #{active_html}
+</table>
 </p>
 EOF
 print 'content', content
