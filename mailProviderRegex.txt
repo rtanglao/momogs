@@ -1,0 +1,8 @@
+yahoo,Yahoo!
+comcast,Comcast
+(gmail|googlemail),gmail
+hotmail,Hotmail
+fastmail,fastmail
+gmx,gmx
+mail\.ru,Mail.ru
+aol,AOL

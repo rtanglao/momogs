@@ -29,10 +29,9 @@ end
 
 f = File.open("mailProviderRegex.txt") or die "Unable to open mailProviderRegex.txt..."
 mailProviderRegexStr = [] 
-f.each_line {|line| mailProviderRegexStr.push line.gsub(/\n/, "")}
-regexes = mailProviderRegexStr.collect {|re_str|%r|#{re_str}|}
-providers =  mailProviderRegexStr.collect {|re_str|re_str.gsub(/\W/,"")}
-
+f.each_line {|line| mailProviderRegexStr.push line.split(',')}
+regexes = mailProviderRegexStr.collect {|re_str|%r|#{re_str[0]}|}
+providers =  mailProviderRegexStr.collect {|re_str|re_str[1]}
 
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
@@ -51,7 +50,6 @@ if !auth
 end
 
 topicsColl = db.collection("topics")
-
 
 metrics_start = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
 metrics_stop =  Time.utc(ARGV[3], ARGV[4], ARGV[5], 23, 59)
@@ -115,14 +113,14 @@ Content-type: text/html
 subject: #{subject}
 Date: #{Time.now.rfc2822}
 
-<h3>Get Satisfaction Top 5 Active:</h3>
+<h3>Get Satisfaction Thunderbird Active Topics FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</h3>
 <p>
 <table border="1">
 <tr>
 <th>replies</th>
 <th>url</th>
-<th>t</th>
-<th>p</th>
+<th>tags</th>
+<th>mail providers</th>
 </tr>
 #{active_html}
 </table>
