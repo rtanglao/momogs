@@ -11,15 +11,17 @@ require 'mongo'
 
 providers = []
 regexes = []
+isp_regexes = []
+isp_providers = []
 
-def check_for_providers(text, regexes, providers)
-  provider_mentions = []
+def check_for_mentions(text, regexes, names_for_regexes)
+  mentions = []
   regexes.each_with_index do |re,i|
     if re.match text 
-      provider_mentions.push(providers[i])
+      mentions.push(names_for_regexes[i])
     end
   end
-  return provider_mentions
+  return mentions
 end
 
 def createLink(url, title, length)
@@ -32,6 +34,12 @@ mailProviderRegexStr = []
 f.each_line {|line| mailProviderRegexStr.push line.split(',')}
 regexes = mailProviderRegexStr.collect {|re_str|%r|#{re_str[0]}|}
 providers =  mailProviderRegexStr.collect {|re_str|re_str[1]}
+
+f = File.open("ispRegex.txt") or die "Unable to open ispRegex.txt..."
+ispRegexStr = [] 
+f.each_line {|line| ispRegexStr.push line.split(',')}
+isp_regexes = ispRegexStr.collect {|re_str|%r|#{re_str[0]}|}
+isp_providers =  ispRegexStr.collect {|re_str|re_str[1]}
 
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
@@ -81,8 +89,10 @@ topicsColl.find({"reply_array" => { "$elemMatch"  =>
     end    
   end
   if reply_count_for_time_period > 0
-    provider_mentions = check_for_providers(fulltext_with_tags, regexes, providers)
-    active_topics.push({:provider_mentions => provider_mentions, :reply_count => reply_count_for_time_period,:topic => t})
+    provider_mentions = check_for_mentions(fulltext_with_tags, regexes, providers)
+    isp_mentions = check_for_mentions(fulltext_with_tags, isp_regexes, isp_providers)
+    active_topics.push({:isp_mentions => isp_mentions, :provider_mentions => provider_mentions, 
+      :reply_count => reply_count_for_time_period,:topic => t})
   end
 end
 active_topics = active_topics.sort_by{|h|h[:reply_count]}
@@ -97,6 +107,8 @@ active_topics.reverse.each do |t|
   end
   active_html = active_html + "</td><td>"
   t[:provider_mentions].each{|p| active_html = active_html + p[0..15] + " " }
+  active_html = active_html + "</td><td>"
+  t[:isp_mentions].each{|isp| active_html = active_html + isp[0..15] + " " }
   active_html = active_html + "</td></tr>"
 end
 
@@ -121,6 +133,7 @@ Date: #{Time.now.rfc2822}
 <th>url</th>
 <th>tags</th>
 <th>mail providers</th>
+<th>ISPs</th>
 </tr>
 #{active_html}
 </table>

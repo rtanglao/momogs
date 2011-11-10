@@ -1,0 +1,14 @@
+verizon,Verizon
+comcast,Comcast
+(sbc|at&t|bellsouth|bell south|southwestern bell),AT&T
+aol,AOL
+charter,Charter
+(qwest|centurylink|centurytel|embarq),CenturyLink
+clearwire,Clearwire
+(roadrunner|road runner|time warner),Roadrunner
+cox,Cox
+windstream,Windstream
+(bell|bell canada),Bell Canada
+Frontier,Frontier Communications
+(cableone|cable one),Cable ONE
+cablevision,Cablevision
