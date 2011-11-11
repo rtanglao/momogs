@@ -23,6 +23,15 @@ def check_for_mentions(text, regexes, names_for_regexes)
   end
   return mentions
 end
+def check_for_mentions_and_increment_count(text, regexes, mentions_with_counts)
+  regexes.each_with_index do |re,i|
+    if re.match text 
+      $stderr.printf("matched with:%s\n", re)
+      mentions_with_counts[i] += 1
+    end
+  end
+  return mentions_with_counts
+end
 
 def createLink(url, title, length)
   return "<a title=\""+title+"\""+
@@ -112,6 +121,28 @@ active_topics.reverse.each do |t|
   active_html = active_html + "</td></tr>"
 end
 
+# find active topics that   
+# then record:
+#   trending tags, mail providers, ISPs and proper nounds
+provider_mention_counts = [0] * providers.length
+
+topicsColl.find({"last_active_at" =>  
+                  {"$gte" => metrics_start, "$lte" => metrics_stop }},
+                  :fields => ["at_sfn", "id","fulltext_with_tags", "tags_array",
+                              "last_active_at"]
+                ).each do |t|  
+  provider_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], regexes, provider_mention_counts)
+end
+
+provider_mention_counts = provider_mention_counts.sort
+mailprovider_html = "<ol>"
+
+provider_mention_counts.reverse.each_with_index do |count,i|
+  mailprovider_html = mailprovider_html + "<li>"
+  mailprovider_html = mailprovider_html + providers[i] + ":" + count.to_s + "</li>"
+end
+mailprovider_html = mailprovider_html + "</ol>"
+
 email_config = ParseConfig.new('email.conf').params
 from = email_config['from_address']
 to = email_config['to_address']
@@ -125,8 +156,10 @@ Content-type: text/html
 subject: #{subject}
 Date: #{Time.now.rfc2822}
 
-<h3>Get Satisfaction Thunderbird Active Topics FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</h3>
+<h3 name="active">Get Satisfaction Thunderbird Active Topics FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</h3>
 <p>
+"Active" means topics with replies during FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}
+</p>
 <table border="1">
 <tr>
 <th>replies</th>
@@ -137,7 +170,10 @@ Date: #{Time.now.rfc2822}
 </tr>
 #{active_html}
 </table>
-</p>
+
+<h3 name="trending">Trending tags, mail providers, ISPs and proper nouns</h3>
+#{mailprovider_html}
+
 EOF
 print 'content', content
 
