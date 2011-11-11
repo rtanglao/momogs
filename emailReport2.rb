@@ -26,13 +26,9 @@ end
 def check_for_mentions_and_increment_count(text, subject, url, regexes, mentions_with_counts)
   regexes.each_with_index do |re,i|
     if re.match text 
-      $stderr.printf("text:%s matched with:%s index:%d\n", text, re, i)
       mentions_with_counts[i]["count"] += 1
       mentions_with_counts[i]["link_html"].push(createLinkWithLinktext(url, subject,  
         mentions_with_counts[i]["count"].to_s, mentions_with_counts[i]["count"].to_s.length))
-      $stderr.printf("START of MENTIONS:%d\n",i)
-      PP::pp(mentions_with_counts,$stderr)
-      $stderr.printf("END of MENTIONS\n")
     end
   end
   return mentions_with_counts
@@ -115,7 +111,6 @@ end
 active_topics = active_topics.sort_by{|h|h[:reply_count]}
 active_html = ""
 active_topics.reverse.each do |t|
-  $stderr.printf("active_html:%s\n", active_html)
   active_html = active_html + "<tr><td>"+
     t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
@@ -141,7 +136,6 @@ topicsColl.find({"last_active_at" =>
                   :fields => ["at_sfn", "fulltext_with_tags", 
                               "last_active_at", "subject"]
                 ).each do |t|  
-  $stderr.printf("provider_mention_count 1st loop topic:url:%s subject:%s fulltext_with_tags:%s\n",t["at_sfn"],t["subject"], t["fulltext_with_tags"])
   provider_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], t["subject"], t["at_sfn"], 
     regexes, provider_mention_counts)
 end
