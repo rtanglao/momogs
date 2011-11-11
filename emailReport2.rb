@@ -23,16 +23,24 @@ def check_for_mentions(text, regexes, names_for_regexes)
   end
   return mentions
 end
-def check_for_mentions_and_increment_count(text, regexes, mentions_with_counts)
+def check_for_mentions_and_increment_count(text, subject, url, regexes, mentions_with_counts)
   regexes.each_with_index do |re,i|
     if re.match text 
-      $stderr.printf("matched with:%s\n", re)
-      mentions_with_counts[i] += 1
+      $stderr.printf("text:%s matched with:%s index:%d\n", text, re, i)
+      mentions_with_counts[i]["count"] += 1
+      mentions_with_counts[i]["link_html"].push(createLinkWithLinktext(url, subject,  
+        mentions_with_counts[i]["count"].to_s, mentions_with_counts[i]["count"].to_s.length))
+      $stderr.printf("START of MENTIONS:%d\n",i)
+      PP::pp(mentions_with_counts,$stderr)
+      $stderr.printf("END of MENTIONS\n")
     end
   end
   return mentions_with_counts
 end
-
+def createLinkWithLinktext(url, title, linktext, length)
+  return "<a title=\""+title+"\""+
+     " href=\""+ url + "\">"+linktext[0..length-1]+"</a>"
+end
 def createLink(url, title, length)
   return "<a title=\""+title+"\""+
      " href=\""+ url + "\">"+title[0..length-1]+"</a>"
@@ -121,25 +129,31 @@ active_topics.reverse.each do |t|
   active_html = active_html + "</td></tr>"
 end
 
-# find active topics that   
-# then record:
+# find active topics that were updated in the time period
+# then calculate:
 #   trending tags, mail providers, ISPs and proper nounds
-provider_mention_counts = [0] * providers.length
-
+# provider_mention_counts = [{"count" => 0, "link_html" => []}] * providers.length
+provider_mention_counts = []
+providers.each{|p| provider_mention_counts.push({"provider" => p, "count" => 0, 
+                 "link_html" => []})}
 topicsColl.find({"last_active_at" =>  
                   {"$gte" => metrics_start, "$lte" => metrics_stop }},
-                  :fields => ["at_sfn", "id","fulltext_with_tags", "tags_array",
-                              "last_active_at"]
+                  :fields => ["at_sfn", "fulltext_with_tags", 
+                              "last_active_at", "subject"]
                 ).each do |t|  
-  provider_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], regexes, provider_mention_counts)
+  $stderr.printf("provider_mention_count 1st loop topic:url:%s subject:%s fulltext_with_tags:%s\n",t["at_sfn"],t["subject"], t["fulltext_with_tags"])
+  provider_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], t["subject"], t["at_sfn"], 
+    regexes, provider_mention_counts)
 end
 
-provider_mention_counts = provider_mention_counts.sort
+provider_mention_counts = provider_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 mailprovider_html = "<ol>"
 
-provider_mention_counts.reverse.each_with_index do |count,i|
+provider_mention_counts.each_with_index do |p,i|
   mailprovider_html = mailprovider_html + "<li>"
-  mailprovider_html = mailprovider_html + providers[i] + ":" + count.to_s + "</li>"
+  mailprovider_html = mailprovider_html + p["provider"] + ":" + p["count"].to_s + " "
+  p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + " " }
+  mailprovider_html = mailprovider_html + "</li>"
 end
 mailprovider_html = mailprovider_html + "</ol>"
 
