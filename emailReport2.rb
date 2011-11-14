@@ -110,7 +110,7 @@ topicsColl.find({"reply_array" => { "$elemMatch"  =>
 end
 active_topics = active_topics.sort_by{|h|h[:reply_count]}
 active_html = ""
-active_topics.reverse.each do |t|
+active_topics.reverse.first(20).each do |t|
   active_html = active_html + "<tr><td>"+
     t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
@@ -126,23 +126,29 @@ end
 
 # find active topics that were updated in the time period
 # then calculate:
-#   trending tags, mail providers, ISPs and proper nounds
+#   trending tags, mail providers, ISPs and proper nouns
 # provider_mention_counts = [{"count" => 0, "link_html" => []}] * providers.length
 provider_mention_counts = []
+isp_mention_counts = []
 providers.each{|p| provider_mention_counts.push({"provider" => p, "count" => 0, 
+                 "link_html" => []})}
+isp_providers.each{|isp| isp_mention_counts.push({"isp" => isp, "count" => 0, 
                  "link_html" => []})}
 topicsColl.find({"last_active_at" =>  
                   {"$gte" => metrics_start, "$lte" => metrics_stop }},
                   :fields => ["at_sfn", "fulltext_with_tags", 
                               "last_active_at", "subject"]
-                ).each do |t|  
+                ).sort([["last_active_at", Mongo::ASCENDING]]).each do |t|  
   provider_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], t["subject"], t["at_sfn"], 
     regexes, provider_mention_counts)
+  isp_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], t["subject"], t["at_sfn"], 
+    isp_regexes, isp_mention_counts)
 end
 
 provider_mention_counts = provider_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
-mailprovider_html = "<ol>"
+isp_mention_counts = isp_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 
+mailprovider_html = "<ol>"
 provider_mention_counts.each_with_index do |p,i|
   mailprovider_html = mailprovider_html + "<li>"
   mailprovider_html = mailprovider_html + p["provider"] + ":" + p["count"].to_s + " "
@@ -150,6 +156,15 @@ provider_mention_counts.each_with_index do |p,i|
   mailprovider_html = mailprovider_html + "</li>"
 end
 mailprovider_html = mailprovider_html + "</ol>"
+
+isp_html = "<ol>"
+isp_mention_counts.each_with_index do |isp,i|
+  isp_html = isp_html + "<li>"
+  isp_html = isp_html + isp["isp"] + ":" + isp["count"].to_s + " "
+  isp["link_html"].each {|l| isp_html = isp_html + l + " " }
+  isp_html = isp_html + "</li>"
+end
+isp_html = isp_html + "</ol>"
 
 email_config = ParseConfig.new('email.conf').params
 from = email_config['from_address']
@@ -164,7 +179,20 @@ Content-type: text/html
 subject: #{subject}
 Date: #{Time.now.rfc2822}
 
-<h3 name="active">Get Satisfaction Thunderbird Active Topics FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</h3>
+<h3>TOC</h3>
+<ul>
+<li><a href="#trending">Trending</a></li>
+<li><a href="#active">Active</a></li>
+</ul>
+
+<a name="trending"></a>
+<h3>Trending tags, mail providers, ISPs and proper nouns</h3>
+<h4>Mail Providers</h4>
+#{mailprovider_html}
+<h4>ISPs</h4>
+#{isp_html}
+<a name="active"></a>
+<h3>Get Satisfaction Thunderbird Active Topics FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</h3>
 <p>
 "Active" means topics with replies during FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}
 </p>
@@ -178,9 +206,6 @@ Date: #{Time.now.rfc2822}
 </tr>
 #{active_html}
 </table>
-
-<h3 name="trending">Trending tags, mail providers, ISPs and proper nouns</h3>
-#{mailprovider_html}
 
 EOF
 print 'content', content
