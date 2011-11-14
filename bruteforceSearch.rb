@@ -27,7 +27,6 @@ class Optparse
 
     opts = OptionParser.new do |opts|
       opts.banner = "Usage: bruteforceSearch.rb [options]"
-
       opts.separator ""
       opts.separator "Specific options:"
       # List of arguments.
@@ -54,6 +53,10 @@ class Optparse
       end
       opts.on("-y", "--yregex x,y,z", Array, "regexes for tags separated by commas (each regex will be NOTed)") do |list|
         options.yregexes = list
+      end
+      opts.on("-e", "--eoc e or a", Array, 
+        "search for topics that are answered, 'e'=search for answered by employees or champions, 'a'=search for answered by all") do |list|
+        options.eoc = list
       end
       opts.separator ""
       opts.separator "Common options:"
@@ -100,16 +103,17 @@ topicsColl = db.collection("topics")
 options = Optparse.parse(ARGV)
 
 if ARGV.length < 6
-  puts "usage: #{$0} yyyy mm dd yyyy mmm dd -t tag1,tag2,tag3...tagn -k keyword1,keyword2,keyword3,keywordn -r regexforfulltext1,rgexforfulltext2 -s regexfortags1,regexfortags2"
+  puts "usage: #{$0} yyyy mm dd yyyy mmm dd -t tag1,tag2,tag3...tagn -k keyword1,keyword2,keyword3,keywordn -r regexforfulltext1,rgexforfulltext2 -s regexfortags1,regexfortags2"+
+  "-e, --eoc e or a for topics that are answered, 'e'=search for answered by employees or champions, 'a'=search for answered by all"
   exit
 end
 
 metrics_start = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
 metrics_stop = Time.utc(ARGV[3], ARGV[4], ARGV[5], 23, 59)
 
-
 topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_stop}},
-                  :fields => ["at_sfn", "id", "last_active_at", "fulltext", "reply_array", "tags_str", "subject"]).sort(
+                  :fields => ["at_sfn", "id", "last_active_at", "fulltext", "reply_array", 
+                    "tags_str", "subject", "status"]).sort(
     [["last_active_at", Mongo::DESCENDING]]).each do |t|
   id = t["id"].to_i
   fulltext =  t["fulltext"]
@@ -196,6 +200,31 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
     end
   end
 
+ if options.eoc.nil?
+   next
+ end
+
+ status = t["status"]
+ remove_topic = true
+ if options.eoc[0] == "e"
+   if status != "complete" && status != "rejected"
+     remove_topic = true
+     $stderr.printf("-e e; removing  NON answered topic id:%d, status:%s\n", id, status)
+   elsif reply_array.detect{|r| r["champion"] || r["employee"]} 
+     $stderr.printf("-e e; employee or champion FOUND, keeping answered topic id:%d\n", id)
+     remove_topic = false
+   end
+ elsif options.eoc[0] == "a"
+   if status != "complete" && status != "rejected"
+     $stderr.printf("-e a; removing NON answered topic id:%d status:%s\n", id, status)
+     remove_topic = true
+   end
+ end
+
+ if remove_topic
+   remove_from_topics_array_if_present(topics, id)
+ end
+   
 end #topicsColl.find
 
 topics = topics.sort_by{|c|c[:last_active_at]}
