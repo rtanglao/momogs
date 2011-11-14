@@ -205,7 +205,7 @@ topicsColl.find({"last_active_at" => {"$gte" => metrics_start, "$lt" => metrics_
  end
 
  status = t["status"]
- remove_topic = true
+ remove_topic = false
  if options.eoc[0] == "e"
    if status != "complete" && status != "rejected"
      remove_topic = true
