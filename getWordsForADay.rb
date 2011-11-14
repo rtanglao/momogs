@@ -30,10 +30,10 @@ topicsColl = db.collection("topics")
 metrics_start = Time.utc(ARGV[0], ARGV[1], ARGV[2], 0, 0)
 metrics_stop =  Time.utc(ARGV[3], ARGV[4], ARGV[5], 23, 59)
 
+f = File.open("stoplist.txt") or die "Unable to open stoplist.txt..."
+stoplist = [] 
+f.each_line {|line| stoplist.push line.chomp}
 # find active topics that were updated in the time period
-# then calculate:
-#   trending tags, mail providers, ISPs and proper nounds
-# provider_mention_counts = [{"count" => 0, "link_html" => []}] * providers.length
 subject_content_reply = ''
 topicsColl.find({"last_active_at" =>  
                   {"$gte" => metrics_start, "$lte" => metrics_stop }},
@@ -45,4 +45,10 @@ end
 tgr = EngTagger.new
 words = Sanitize.clean(subject_content_reply)
 word_list = tgr.get_words(words)
-pp word_list.sort {|a,b| a[1]<=>b[1]}
+word_list = word_list.sort {|a,b| a[1]<=>b[1]}
+stoplist.each{|stop|word_list.delete_if{|w|w[0].include?(stop)}}
+pp word_list
+stop_list_file = File.new("stoplist."+ARGV[0]+ARGV[1]+ARGV[2]+ARGV[3]+ARGV[4]+ARGV[5]+"-words.txt", "w")
+
+word_list.each {|row|stop_list_file.puts"#{row[0]}" }
+stop_list_file.close
