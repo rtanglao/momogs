@@ -130,6 +130,7 @@ end
 # provider_mention_counts = [{"count" => 0, "link_html" => []}] * providers.length
 provider_mention_counts = []
 isp_mention_counts = []
+tag_counts = {}
 providers.each{|p| provider_mention_counts.push({"provider" => p, "count" => 0, 
                  "link_html" => []})}
 isp_providers.each{|isp| isp_mention_counts.push({"isp" => isp, "count" => 0, 
@@ -137,16 +138,34 @@ isp_providers.each{|isp| isp_mention_counts.push({"isp" => isp, "count" => 0,
 topicsColl.find({"last_active_at" =>  
                   {"$gte" => metrics_start, "$lte" => metrics_stop }},
                   :fields => ["at_sfn", "fulltext_with_tags", 
-                              "last_active_at", "subject"]
+                              "last_active_at", "subject", "tags_array"]
                 ).sort([["last_active_at", Mongo::ASCENDING]]).each do |t|  
   provider_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], t["subject"], t["at_sfn"], 
     regexes, provider_mention_counts)
   isp_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], t["subject"], t["at_sfn"], 
     isp_regexes, isp_mention_counts)
+  t["tags_array"].each do |tag|
+    if tag_counts.has_key?(tag)
+      tag_counts[tag] += 1
+    else
+      tag_counts[tag] = 1
+    end
+  end
 end
 
+sorted_tag_counts = tag_counts.sort{|p,q|q[1]<=>p[1]}
 provider_mention_counts = provider_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 isp_mention_counts = isp_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
+tag_html = "<ol>"
+sorted_tag_counts.each do |t|
+  tag_html += "<li>" + t[1].to_s + ", "
+  tag_html +=  
+    createLinkWithLinktext("http://getsatisfaction.com/mozilla_messaging/tags/"+
+      t[0], t[0], t[0], 16)
+  tag_html += "</li>"
+end
+tag_html += "</ol>"
+
 
 mailprovider_html = "<ol>"
 provider_mention_counts.each_with_index do |p,i|
@@ -191,6 +210,9 @@ Date: #{Time.now.rfc2822}
 #{mailprovider_html}
 <h4>ISPs</h4>
 #{isp_html}
+<h4>Tags</h4>
+#{tag_html}
+
 <a name="active"></a>
 <h3>Get Satisfaction Thunderbird Active Topics FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</h3>
 <p>
