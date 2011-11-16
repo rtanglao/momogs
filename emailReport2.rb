@@ -42,6 +42,10 @@ def createLink(url, title, length)
      " href=\""+ url + "\">"+title[0..length-1]+"</a>"
 end
 
+f = File.open("tag_stopwords.txt") or die "Unable to open tag_stopwords.txt..."
+tag_stoplist = [] 
+f.each_line {|line| tag_stoplist.push line.chomp}
+
 f = File.open("mailProviderRegex.txt") or die "Unable to open mailProviderRegex.txt..."
 mailProviderRegexStr = [] 
 f.each_line {|line| mailProviderRegexStr.push line.split(',')}
@@ -111,17 +115,17 @@ end
 active_topics = active_topics.sort_by{|h|h[:reply_count]}
 active_html = ""
 active_topics.reverse.first(20).each do |t|
-  active_html = active_html + "<tr><td>"+
+  active_html += "<tr><td>"+
     t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
-    active_html = active_html + createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
+    active_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
       tag, 16) + " "              
   end
   active_html = active_html + "</td><td>"
   t[:provider_mentions].each{|p| active_html = active_html + p[0..15] + " " }
-  active_html = active_html + "</td><td>"
+  active_html += "</td><td>"
   t[:isp_mentions].each{|isp| active_html = active_html + isp[0..15] + " " }
-  active_html = active_html + "</td></tr>"
+  active_html += "</td></tr>"
 end
 
 # find active topics that were updated in the time period
@@ -154,10 +158,11 @@ topicsColl.find({"last_active_at" =>
 end
 
 sorted_tag_counts = tag_counts.sort{|p,q|q[1]<=>p[1]}
+sorted_tag_counts.delete_if{|t|tag_stoplist.detect{|stop|stop == t[0]}}
 provider_mention_counts = provider_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 isp_mention_counts = isp_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 tag_html = "<ol>"
-sorted_tag_counts.each do |t|
+sorted_tag_counts.first(20).each do |t|
   tag_html += "<li>" + t[1].to_s + ", "
   tag_html +=  
     createLinkWithLinktext("http://getsatisfaction.com/mozilla_messaging/tags/"+
@@ -166,24 +171,23 @@ sorted_tag_counts.each do |t|
 end
 tag_html += "</ol>"
 
-
 mailprovider_html = "<ol>"
 provider_mention_counts.each_with_index do |p,i|
-  mailprovider_html = mailprovider_html + "<li>"
-  mailprovider_html = mailprovider_html + p["provider"] + ":" + p["count"].to_s + " "
+  mailprovider_html += "<li>"
+  mailprovider_html +=  p["provider"] + ":" + p["count"].to_s + " "
   p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + " " }
-  mailprovider_html = mailprovider_html + "</li>"
+  mailprovider_html += "</li>"
 end
-mailprovider_html = mailprovider_html + "</ol>"
+mailprovider_html += "</ol>"
 
 isp_html = "<ol>"
 isp_mention_counts.each_with_index do |isp,i|
-  isp_html = isp_html + "<li>"
-  isp_html = isp_html + isp["isp"] + ":" + isp["count"].to_s + " "
+  isp_html += "<li>"
+  isp_html += isp["isp"] + ":" + isp["count"].to_s + " "
   isp["link_html"].each {|l| isp_html = isp_html + l + " " }
-  isp_html = isp_html + "</li>"
+  isp_html += "</li>"
 end
-isp_html = isp_html + "</ol>"
+isp_html += "</ol>"
 
 email_config = ParseConfig.new('email.conf').params
 from = email_config['from_address']
