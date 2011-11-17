@@ -150,23 +150,28 @@ topicsColl.find({"last_active_at" =>
     isp_regexes, isp_mention_counts)
   t["tags_array"].each do |tag|
     if tag_counts.has_key?(tag)
-      tag_counts[tag] += 1
+      tag_counts[tag]["count"] += 1
     else
-      tag_counts[tag] = 1
+      tag_counts[tag] = {"count"=> 1, "links" => []}
     end
+    tag_counts[tag]["links"].push({"url" => t["at_sfn"], "title" => t["subject"]})
   end
 end
 
-sorted_tag_counts = tag_counts.sort{|p,q|q[1]<=>p[1]}
+sorted_tag_counts = tag_counts.sort{|p,q|q[1]["count"]<=>p[1]["count"]}
 sorted_tag_counts.delete_if{|t|tag_stoplist.detect{|stop|stop == t[0]}}
 provider_mention_counts = provider_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 isp_mention_counts = isp_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 tag_html = "<ol>"
 sorted_tag_counts.first(20).each do |t|
-  tag_html += "<li>" + t[1].to_s + ", "
+  tag_html += "<li>" + t[1]["count"].to_s + ", "
   tag_html +=  
-    createLinkWithLinktext("http://getsatisfaction.com/mozilla_messaging/tags/"+
-      t[0], t[0], t[0], 16)
+    createLinkWithLinktext("http://getsatisfaction.com/mozilla_messaging/tags/" +
+      t[0], t[0], t[0], 16) + ":" 
+    t[1]["links"].each_with_index do |tag_info,i|
+      tag_html += createLinkWithLinktext(tag_info["url"], tag_info["title"],
+        (i+1).to_s, (i+1).to_s.length) + " "
+    end
   tag_html += "</li>"
 end
 tag_html += "</ol>"
@@ -209,7 +214,7 @@ Date: #{Time.now.rfc2822}
 </ul>
 
 <a name="trending"></a>
-<h3>Trending tags, mail providers, ISPs and proper nouns</h3>
+<h3>Trending tags, mail providers, and ISPs</h3>
 <h4>Mail Providers</h4>
 #{mailprovider_html}
 <h4>ISPs</h4>
