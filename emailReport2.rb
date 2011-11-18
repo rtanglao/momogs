@@ -121,17 +121,16 @@ active_topics.reverse.first(20).each do |t|
     active_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
       tag, 16) + " "              
   end
-  active_html = active_html + "</td><td>"
-  t[:provider_mentions].each{|p| active_html = active_html + p[0..15] + " " }
   active_html += "</td><td>"
-  t[:isp_mentions].each{|isp| active_html = active_html + isp[0..15] + " " }
+  t[:provider_mentions].each{|p| active_html += p[0..15] + " " }
+  active_html += "</td><td>"
+  t[:isp_mentions].each{|isp| active_html += isp[0..15] + " " }
   active_html += "</td></tr>"
 end
 
 # find active topics that were updated in the time period
 # then calculate:
 #   trending tags, mail providers, ISPs and proper nouns
-# provider_mention_counts = [{"count" => 0, "link_html" => []}] * providers.length
 provider_mention_counts = []
 isp_mention_counts = []
 tag_counts = {}
@@ -194,6 +193,40 @@ isp_mention_counts.each_with_index do |isp,i|
 end
 isp_html += "</ol>"
 
+created_topics = []
+provider_mentions = []
+isp_mentions = []
+# get topics created in the time period and get tags, mail providers, isps
+topicsColl.find({"created_at" =>  
+                  {"$gte" => metrics_start, "$lte" => metrics_stop }},
+                  :fields => ["at_sfn", "fulltext_with_tags", 
+                               "subject", "tags_array"]
+                ).sort([["created_at", Mongo::ASCENDING]]).each do |t|  
+  url = t["at_sfn"]
+  subject = t["subject"]
+  fulltext_with_tags = t["fulltext_with_tags"]
+  tags_array = t["tags_array"]
+  provider_mentions = check_for_mentions(fulltext_with_tags, regexes, providers)
+  isp_mentions = check_for_mentions(fulltext_with_tags, isp_regexes, isp_providers)
+  created_topics.push({:isp_mentions => isp_mentions, :provider_mentions => provider_mentions, 
+      :reply_count => 0,:topic => t})
+end
+
+created_html = ""
+created_topics.each_with_index do |t,i|
+  created_html += "<tr><td>"+
+   (i+1).to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
+  t[:topic]["tags_array"].each do |tag|
+    created_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
+      tag, 16) + " "              
+  end
+  created_html += "</td><td>"
+  t[:provider_mentions].each{|p| created_html += p[0..15] + " " }
+  created_html += "</td><td>"
+  t[:isp_mentions].each{|isp| created_html += isp[0..15] + " " }
+  created_html += "</td></tr>"
+end
+
 email_config = ParseConfig.new('email.conf').params
 from = email_config['from_address']
 to = email_config['to_address']
@@ -209,8 +242,9 @@ Date: #{Time.now.rfc2822}
 
 <h3>TOC</h3>
 <ul>
-<li><a href="#trending">Trending</a></li>
-<li><a href="#active">Active</a></li>
+<li><a href="#trending">Trending FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</a></li>
+<li><a href="#active">Active FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</a></li>
+<li><a href="#created">Created FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</a>
 </ul>
 
 <a name="trending"></a>
@@ -227,7 +261,7 @@ Date: #{Time.now.rfc2822}
 <p>
 "Active" means topics with replies during FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}
 </p>
-<table border="1">
+<table border="1" bgcolor="dark green">
 <tr>
 <th>replies</th>
 <th>url</th>
@@ -236,6 +270,20 @@ Date: #{Time.now.rfc2822}
 <th>ISPs</th>
 </tr>
 #{active_html}
+</table>
+
+<a name="created"></a>
+<h3>Get Satisfaction Thunderbird Topics Created FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</h3>
+
+<table border="1">
+<tr>
+<th>topic#</th>
+<th>url</th>
+<th>tags</th>
+<th>mail providers</th>
+<th>ISPs</th>
+</tr>
+#{created_html}
 </table>
 
 EOF
