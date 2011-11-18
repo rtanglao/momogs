@@ -261,7 +261,7 @@ Date: #{Time.now.rfc2822}
 <p>
 "Active" means topics with replies during FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}
 </p>
-<table border="1" bgcolor="dark green">
+<table border="1" bgcolor="gray">
 <tr>
 <th>replies</th>
 <th>url</th>
