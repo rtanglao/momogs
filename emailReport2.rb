@@ -227,9 +227,9 @@ created_topics.each_with_index do |t,i|
   created_html += "</td></tr>"
 end
 
-email_config = ParseConfig.new('email.conf').params
+email_config = ParseConfig.new('email2.conf').params
 from = email_config['from_address']
-to = email_config['to_address']
+to = email_config['to_address'].split(",")
 p = email_config['p']
 subject = "Thunderbird Support Report FROM: %d.%d.%d TO: %d.%d.%d generated:%s" % [ARGV[0],ARGV[1],ARGV[2],ARGV[3], ARGV[4], ARGV[5], Time.now]
 content = <<EOF
