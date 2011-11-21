@@ -14,6 +14,11 @@ regexes = []
 isp_regexes = []
 isp_providers = []
 
+def sanitize_tag(tag) 
+  t = tag.gsub(" ", "_")
+  return t.gsub(/[\.!\?]/, "")
+end
+
 def check_for_mentions(text, regexes, names_for_regexes)
   mentions = []
   regexes.each_with_index do |re,i|
@@ -118,7 +123,7 @@ active_topics.reverse.first(20).each do |t|
   active_html += "<tr><td>"+
     t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
-    active_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
+    active_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + sanitize_tag(tag),
       tag, 16) + " "              
   end
   active_html += "</td><td>"
@@ -164,9 +169,10 @@ isp_mention_counts = isp_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 tag_html = "<ol>"
 sorted_tag_counts.first(20).each do |t|
   tag_html += "<li>" + t[1]["count"].to_s + ", "
+  sanitized_tag = sanitize_tag(t[0])
   tag_html +=  
     createLinkWithLinktext("http://getsatisfaction.com/mozilla_messaging/tags/" +
-      t[0], t[0], t[0], 16) + ":" 
+      sanitized_tag, t[0], t[0], 16) + ":" 
     t[1]["links"].each_with_index do |tag_info,i|
       tag_html += createLinkWithLinktext(tag_info["url"], tag_info["title"],
         (i+1).to_s, (i+1).to_s.length) + " "
@@ -217,7 +223,7 @@ created_topics.each_with_index do |t,i|
   created_html += "<tr><td>"+
    (i+1).to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
-    created_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + tag,
+    created_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + sanitize_tag(tag),
       tag, 16) + " "              
   end
   created_html += "</td><td>"
