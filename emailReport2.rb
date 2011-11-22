@@ -15,6 +15,40 @@ regexes = []
 isp_regexes = []
 isp_providers = []
 
+def get_html_for_contributors(contributors)
+  contributor_reply_html = "<ol>"
+  contributors.each do |t|
+    contributor_reply_html += "<li>" + t[:num_replies].to_s + ", " + 
+      createLink("http://getsatisfaction.com/people/" + CGI.escapeHTML(t[:author]), t[:author], 24) + " "
+    t[:links].each_with_index do |l,i|
+      contributor_reply_html += createLinkWithLinktext(l["url"], l["title"],
+        (i+1).to_s, (i+1).to_s.length) + " "              
+    end
+    contributor_reply_html += "</li>"
+  end
+  contributor_reply_html += "</ol>"
+  return contributor_reply_html
+end
+
+def  increment_num_replies_and_save_topic_link(topic, reply, contributors)
+  author = reply["author"]["canonical_name"]
+  c = contributors.detect {|c|c[:author] == author}
+  if !c.nil?
+    $stderr.printf("FOUND author:%s! Incrementing num_replies:%d\n", author,c[:num_replies]) 
+    c[:num_replies] += 1
+    existing_link = c[:links].detect{|l|l["url"] == topic["at_sfn"]}
+    if existing_link.nil?
+      c[:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"]})
+    end
+  else
+    $stderr.printf("DID NOT FIND author:%s! Adding Author and title:%s, setting num_replies to 1\n", 
+      author, topic["subject"]) 
+    contributor_array = contributors.push({:author => author,:num_replies => 1, :links => []})
+    contributor_array[-1][:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"]})
+  end
+  return contributors   
+end
+
 def sanitize_tag(tag) 
   t = tag.gsub(" ", "_")
   return t.gsub(/[\.!\?]/, "")
@@ -128,9 +162,9 @@ active_topics.reverse.first(20).each do |t|
       tag, 16) + " "              
   end
   active_html += "</td><td>"
-  t[:provider_mentions].each{|p| active_html += p[0..15] + " " }
+  t[:provider_mentions].each{|p| active_html += CGI.escapeHTML(p[0..15]) + " " }
   active_html += "</td><td>"
-  t[:isp_mentions].each{|isp| active_html += isp[0..15] + " " }
+  t[:isp_mentions].each{|isp| active_html += CGI.escapeHTML(isp[0..15]) + " " }
   active_html += "</td></tr>"
 end
 
@@ -185,7 +219,7 @@ tag_html += "</ol>"
 mailprovider_html = "<ol>"
 provider_mention_counts.each_with_index do |p,i|
   mailprovider_html += "<li>"
-  mailprovider_html +=  p["provider"] + ":" + p["count"].to_s + " "
+  mailprovider_html +=  CGI.escapeHTML(p["provider"]) + ":" + p["count"].to_s + " "
   p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + " " }
   mailprovider_html += "</li>"
 end
@@ -194,7 +228,7 @@ mailprovider_html += "</ol>"
 isp_html = "<ol>"
 isp_mention_counts.each_with_index do |isp,i|
   isp_html += "<li>"
-  isp_html += isp["isp"] + ":" + isp["count"].to_s + " "
+  isp_html += CGI.escapeHTML(isp["isp"]) + ":" + isp["count"].to_s + " "
   isp["link_html"].each {|l| isp_html = isp_html + l + " " }
   isp_html += "</li>"
 end
@@ -222,17 +256,48 @@ end
 created_html = ""
 created_topics.each_with_index do |t,i|
   created_html += "<tr><td>"+
-   (i+1).to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
+   (i+1).to_s+".</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
     created_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" +
       CGI.escapeHTML(sanitize_tag(tag)), tag, 16) + " "              
   end
   created_html += "</td><td>"
-  t[:provider_mentions].each{|p| created_html += p[0..15] + " " }
+  t[:provider_mentions].each{|p| created_html += CGI.escapeHTML(p[0..15]) + " " }
   created_html += "</td><td>"
-  t[:isp_mentions].each{|isp| created_html += isp[0..15] + " " }
+  t[:isp_mentions].each{|isp| created_html += CGI.escapeHTML(isp[0..15]) + " " }
   created_html += "</td></tr>"
 end
+
+employees_or_champions = []
+non_employees_or_champions = []
+
+topicsColl.find({"reply_array" => { "$elemMatch"  => { "created_at" =>  {"$gte" => metrics_start, "$lte" => metrics_stop }}}},
+                :fields => ["at_sfn", "id", "reply_count", "reply_array", "subject"]
+                ).each do |t|
+  $stderr.printf("topic:%d, reply_count:%d\n", t["id"], t["reply_count"])
+  url = t["at_sfn"]
+  t["reply_array"].each do |r|
+    created_at = r["created_at"]
+    $stderr.printf("CHECKING reply:%d by author:%s\n", r["id"],r["author"]["canonical_name"])
+    if ((created_at <=> metrics_start) >= 0) && ((created_at <=> metrics_stop) <= 0)
+      author = r["author"]["canonical_name"]
+      $stderr.printf("IN time period, author:%s has a reply id:%d\n", author, r["id"])
+      if  r["author"]["employee"] || r["author"]["champion"]
+        employees_or_champions = increment_num_replies_and_save_topic_link(t, r, employees_or_champions)
+      else
+        non_employees_or_champions  = increment_num_replies_and_save_topic_link(t, r, non_employees_or_champions)
+      end 
+    else
+      $stderr.printf("NOT in time period, reply:%d\n", r["id"])
+    end      
+  end
+end
+
+employees_or_champions = employees_or_champions.sort{|b,c|c[:num_replies]<=>b[:num_replies]}
+non_employees_or_champions = non_employees_or_champions.sort{|b,c|c[:num_replies]<=>b[:num_replies]}
+
+eoc_reply_html = get_html_for_contributors(employees_or_champions.first(20))
+non_eoc_reply_html = get_html_for_contributors(non_employees_or_champions.first(20))
 
 email_config = ParseConfig.new('email2.conf').params
 from = email_config['from_address']
@@ -250,6 +315,7 @@ Date: #{Time.now.rfc2822}
 <h3>TOC</h3>
 <ul>
 <li><a href="#trending">Trending FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</a></li>
+<li><a href="#repliers">Top Repliers FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</a></li>
 <li><a href="#active">Active FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</a></li>
 <li><a href="#created">Created FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</a>
 </ul>
@@ -263,10 +329,17 @@ Date: #{Time.now.rfc2822}
 <h4>Tags</h4>
 #{tag_html}
 
+<a name="repliers"></a>
+<h3>Top Repliers</h3>
+<h4>Top Champion and Employee Repliers</h4>
+#{eoc_reply_html}
+<h4>Top NON Champion and Employee Repliers</h4>
+#{non_eoc_reply_html}
+
 <a name="active"></a>
 <h3>Get Satisfaction Thunderbird Active Topics FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</h3>
 <p>
-"Active" means topics with replies during FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}
+<b>Active</b> means topics with replies during FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}
 </p>
 <table border="1" bgcolor="gray">
 <tr>
