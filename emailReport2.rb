@@ -8,6 +8,7 @@ require 'tlsmail'
 require 'date'
 require 'parseconfig'
 require 'mongo'
+require 'cgi'
 
 providers = []
 regexes = []
@@ -39,12 +40,12 @@ def check_for_mentions_and_increment_count(text, subject, url, regexes, mentions
   return mentions_with_counts
 end
 def createLinkWithLinktext(url, title, linktext, length)
-  return "<a title=\""+title+"\""+
-     " href=\""+ url + "\">"+linktext[0..length-1]+"</a>"
+  return "<a title=\""+CGI.escapeHTML(title)+"\""+
+     " href=\""+ url + "\">"+CGI.escapeHTML(linktext[0..length-1])+"</a>"
 end
 def createLink(url, title, length)
-  return "<a title=\""+title+"\""+
-     " href=\""+ url + "\">"+title[0..length-1]+"</a>"
+  return "<a title=\""+CGI.escapeHTML(title) + "\""+
+     " href=\""+ url + "\">" + CGI.escapeHTML(title[0..length-1]) + "</a>"
 end
 
 f = File.open("tag_stopwords.txt") or die "Unable to open tag_stopwords.txt..."
@@ -123,7 +124,7 @@ active_topics.reverse.first(20).each do |t|
   active_html += "<tr><td>"+
     t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
-    active_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + sanitize_tag(tag),
+    active_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + CGI.escapeHTML(sanitize_tag(tag)),
       tag, 16) + " "              
   end
   active_html += "</td><td>"
@@ -172,7 +173,7 @@ sorted_tag_counts.first(20).each do |t|
   sanitized_tag = sanitize_tag(t[0])
   tag_html +=  
     createLinkWithLinktext("http://getsatisfaction.com/mozilla_messaging/tags/" +
-      sanitized_tag, t[0], t[0], 16) + ":" 
+      CGI.escapeHTML(sanitized_tag), t[0], t[0], 16) + ":" 
     t[1]["links"].each_with_index do |tag_info,i|
       tag_html += createLinkWithLinktext(tag_info["url"], tag_info["title"],
         (i+1).to_s, (i+1).to_s.length) + " "
@@ -223,8 +224,8 @@ created_topics.each_with_index do |t,i|
   created_html += "<tr><td>"+
    (i+1).to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
   t[:topic]["tags_array"].each do |tag|
-    created_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + sanitize_tag(tag),
-      tag, 16) + " "              
+    created_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" +
+      CGI.escapeHTML(sanitize_tag(tag)), tag, 16) + " "              
   end
   created_html += "</td><td>"
   t[:provider_mentions].each{|p| created_html += p[0..15] + " " }
@@ -240,7 +241,7 @@ p = email_config['p']
 subject = "Thunderbird Support Report FROM: %d.%d.%d TO: %d.%d.%d generated:%s" % [ARGV[0],ARGV[1],ARGV[2],ARGV[3], ARGV[4], ARGV[5], Time.now]
 content = <<EOF
 From: #{from}
-To: #{to}
+To: #{email_config['to_address']}
 MIME-Version: 1.0
 Content-type: text/html
 subject: #{subject}
