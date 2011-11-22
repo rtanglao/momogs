@@ -243,7 +243,7 @@ content = <<EOF
 From: #{from}
 To: #{email_config['to_address']}
 MIME-Version: 1.0
-Content-type: text/html
+Content-type: text/html; charset=utf-8
 subject: #{subject}
 Date: #{Time.now.rfc2822}
 
