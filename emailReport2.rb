@@ -18,11 +18,11 @@ isp_providers = []
 def get_html_for_contributors(contributors)
   contributor_reply_html = "<ol>"
   contributors.each do |t|
-    contributor_reply_html += "<li>" + t[:num_replies].to_s + ", " + 
-      createLink("http://getsatisfaction.com/people/" + CGI.escapeHTML(t[:author]), t[:author], 24) + " "
+    contributor_reply_html += "<li>" + t[:num_replies].to_s + ",&nbsp;" + 
+      createLink("http://getsatisfaction.com/people/" + CGI.escapeHTML(t[:author]), t[:author], 24) + "::"
     t[:links].each_with_index do |l,i|
       contributor_reply_html += createLinkWithLinktext(l["url"], l["title"],
-        (i+1).to_s, (i+1).to_s.length) + " "              
+        (i+1).to_s, (i+1).to_s.length) + "::"              
     end
     contributor_reply_html += "</li>"
   end
@@ -156,15 +156,15 @@ active_topics = active_topics.sort_by{|h|h[:reply_count]}
 active_html = ""
 active_topics.reverse.first(20).each do |t|
   active_html += "<tr><td>"+
-    t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
+    t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>::"
   t[:topic]["tags_array"].each do |tag|
     active_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + CGI.escapeHTML(sanitize_tag(tag)),
-      tag, 16) + " "              
+      tag, 16) + "::"              
   end
-  active_html += "</td><td>"
-  t[:provider_mentions].each{|p| active_html += CGI.escapeHTML(p[0..15]) + " " }
-  active_html += "</td><td>"
-  t[:isp_mentions].each{|isp| active_html += CGI.escapeHTML(isp[0..15]) + " " }
+  active_html += "</td><td>::"
+  t[:provider_mentions].each{|p| active_html += CGI.escapeHTML(p[0..15]) + "::" }
+  active_html += "</td><td>::"
+  t[:isp_mentions].each{|isp| active_html += CGI.escapeHTML(isp[0..15]) + "::" }
   active_html += "</td></tr>"
 end
 
@@ -210,7 +210,7 @@ sorted_tag_counts.first(20).each do |t|
       CGI.escapeHTML(sanitized_tag), t[0], t[0], 16) + ":" 
     t[1]["links"].each_with_index do |tag_info,i|
       tag_html += createLinkWithLinktext(tag_info["url"], tag_info["title"],
-        (i+1).to_s, (i+1).to_s.length) + " "
+        (i+1).to_s, (i+1).to_s.length) + "::"
     end
   tag_html += "</li>"
 end
@@ -219,8 +219,8 @@ tag_html += "</ol>"
 mailprovider_html = "<ol>"
 provider_mention_counts.each_with_index do |p,i|
   mailprovider_html += "<li>"
-  mailprovider_html +=  CGI.escapeHTML(p["provider"]) + ":" + p["count"].to_s + " "
-  p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + " " }
+  mailprovider_html +=  CGI.escapeHTML(p["provider"]) + ":" + p["count"].to_s + "::"
+  p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + "::" }
   mailprovider_html += "</li>"
 end
 mailprovider_html += "</ol>"
@@ -228,8 +228,8 @@ mailprovider_html += "</ol>"
 isp_html = "<ol>"
 isp_mention_counts.each_with_index do |isp,i|
   isp_html += "<li>"
-  isp_html += CGI.escapeHTML(isp["isp"]) + ":" + isp["count"].to_s + " "
-  isp["link_html"].each {|l| isp_html = isp_html + l + " " }
+  isp_html += CGI.escapeHTML(isp["isp"]) + ":" + isp["count"].to_s + "::"
+  isp["link_html"].each {|l| isp_html = isp_html + l + "::" }
   isp_html += "</li>"
 end
 isp_html += "</ol>"
@@ -253,19 +253,20 @@ topicsColl.find({"created_at" =>
       :reply_count => 0,:topic => t})
 end
 
-created_html = ""
+created_html = []
 created_topics.each_with_index do |t,i|
-  created_html += "<tr><td>"+
-   (i+1).to_s+".</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>"
+  row  = "<tr><td>" +
+    (i+1).to_s+".</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>::"
   t[:topic]["tags_array"].each do |tag|
-    created_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" +
-      CGI.escapeHTML(sanitize_tag(tag)), tag, 16) + " "              
+    row  += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" +
+      CGI.escapeHTML(sanitize_tag(tag)), tag, 16) + "::"              
   end
-  created_html += "</td><td>"
-  t[:provider_mentions].each{|p| created_html += CGI.escapeHTML(p[0..15]) + " " }
-  created_html += "</td><td>"
-  t[:isp_mentions].each{|isp| created_html += CGI.escapeHTML(isp[0..15]) + " " }
-  created_html += "</td></tr>"
+  row += "</td><td>::"
+  t[:provider_mentions].each{|p| row += CGI.escapeHTML(p[0..15]) + "::" }
+  row += "</td><td>::"
+  t[:isp_mentions].each{|isp| row += CGI.escapeHTML(isp[0..15]) + "::" }
+  row  += "</td></tr>"
+  created_html.push(row)
 end
 
 employees_or_champions = []
