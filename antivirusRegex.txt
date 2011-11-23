@@ -1,0 +1,24 @@
+(ad-aware|adaware),Ad-Aware
+(agnitum|outpost),Agnitum
+(norton|symantec),Norton Symantec
+bitdefender,BitDefender
+sophos,Sophos
+bullgard,BullGuard
+emsisoft,Emsisoft
+(eset|nod32),Eset
+(f-prot|fprot),F-PROT
+mcafee,McAfee
+(mse|microsoft security essentials|microsoftsecurityessentials),MSE
+(pctools|pc tools),PC Tools
+(secunia|psi),Secunia
+shield,The Shield
+virusbuster,VirusBuster
+(nortonsecurityscan|norton security scan|nss),Norton Security Scan
+(webroot|secureanywhere),Webroot SecureAnywhere
+(trend micro|trendmicro|worry-free),Trend Micro
+avg,AVG
+avast,Avast
+(antivir|avira),Avira AntiVir
+malwarebytes,Malwarebytes
+kaspersky,Kaspersky
+(panda|global protection|globalprotection),Panda

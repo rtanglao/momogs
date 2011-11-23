@@ -14,6 +14,8 @@ providers = []
 regexes = []
 isp_regexes = []
 isp_providers = []
+antivirus = []
+antivirus_regexes = []
 
 def get_html_for_contributors(contributors)
   contributor_reply_html = "<ol>"
@@ -90,13 +92,19 @@ f = File.open("mailProviderRegex.txt") or die "Unable to open mailProviderRegex.
 mailProviderRegexStr = [] 
 f.each_line {|line| mailProviderRegexStr.push line.split(',')}
 regexes = mailProviderRegexStr.collect {|re_str|%r|#{re_str[0]}|}
-providers =  mailProviderRegexStr.collect {|re_str|re_str[1]}
+providers =  mailProviderRegexStr.collect {|re_str|re_str[1].chomp}
 
 f = File.open("ispRegex.txt") or die "Unable to open ispRegex.txt..."
 ispRegexStr = [] 
 f.each_line {|line| ispRegexStr.push line.split(',')}
 isp_regexes = ispRegexStr.collect {|re_str|%r|#{re_str[0]}|}
-isp_providers =  ispRegexStr.collect {|re_str|re_str[1]}
+isp_providers =  ispRegexStr.collect {|re_str|re_str[1].chomp}
+
+f = File.open("antivirusRegex.txt") or die "Unable to open antivirusRegex.txt..."
+antivirusRegexStr = [] 
+f.each_line {|line| antivirusRegexStr.push line.split(',')}
+antivirus_regexes = antivirusRegexStr.collect {|re_str|%r|#{re_str[0]}|}
+antivirus =  antivirusRegexStr.collect {|re_str|re_str[1].chomp}
 
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
@@ -129,7 +137,8 @@ active_topics = []
 #   number of replies, url, subject, top 5 tags, top 5 mail providers, top 5 isps 
 topicsColl.find({"reply_array" => { "$elemMatch"  => 
                     { "created_at" =>  {"$gte" => metrics_start, "$lte" => metrics_stop }}}},
-                  :fields => ["at_sfn", "id", "reply_count", "reply_array", "subject", "fulltext_with_tags", "tags_array"]
+                  :fields => ["at_sfn", "id", "reply_count", "reply_array", "subject", "fulltext_with_tags", 
+                    "tags_array"]
                 ).each do |t|
   url = t["at_sfn"]
   subject = t["subject"]
@@ -170,13 +179,16 @@ end
 
 # find active topics that were updated in the time period
 # then calculate:
-#   trending tags, mail providers, ISPs and proper nouns
+#   trending tags, mail providers, ISPs and antivirus (and in the future proper nouns)
 provider_mention_counts = []
 isp_mention_counts = []
+antivirus_mention_counts = []
 tag_counts = {}
 providers.each{|p| provider_mention_counts.push({"provider" => p, "count" => 0, 
                  "link_html" => []})}
 isp_providers.each{|isp| isp_mention_counts.push({"isp" => isp, "count" => 0, 
+                 "link_html" => []})}
+antivirus.each{|av| antivirus_mention_counts.push({"av" => av, "count" => 0, 
                  "link_html" => []})}
 topicsColl.find({"last_active_at" =>  
                   {"$gte" => metrics_start, "$lte" => metrics_stop }},
@@ -187,6 +199,8 @@ topicsColl.find({"last_active_at" =>
     regexes, provider_mention_counts)
   isp_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], t["subject"], t["at_sfn"], 
     isp_regexes, isp_mention_counts)
+  antivirus_mention_counts = check_for_mentions_and_increment_count(t["fulltext_with_tags"], t["subject"], t["at_sfn"], 
+    antivirus_regexes, antivirus_mention_counts)
   t["tags_array"].each do |tag|
     if tag_counts.has_key?(tag)
       tag_counts[tag]["count"] += 1
@@ -201,6 +215,8 @@ sorted_tag_counts = tag_counts.sort{|p,q|q[1]["count"]<=>p[1]["count"]}
 sorted_tag_counts.delete_if{|t|tag_stoplist.detect{|stop|stop == t[0]}}
 provider_mention_counts = provider_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 isp_mention_counts = isp_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
+antivirus_mention_counts = antivirus_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
+
 tag_html = "<ol>"
 sorted_tag_counts.first(20).each do |t|
   tag_html += "<li>" + t[1]["count"].to_s + ", "
@@ -217,7 +233,7 @@ end
 tag_html += "</ol>"
 
 mailprovider_html = "<ol>"
-provider_mention_counts.each_with_index do |p,i|
+provider_mention_counts.each do |p|
   mailprovider_html += "<li>"
   mailprovider_html +=  CGI.escapeHTML(p["provider"]) + ":" + p["count"].to_s + "::"
   p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + "::" }
@@ -226,13 +242,26 @@ end
 mailprovider_html += "</ol>"
 
 isp_html = "<ol>"
-isp_mention_counts.each_with_index do |isp,i|
+isp_mention_counts.each do |isp|
   isp_html += "<li>"
   isp_html += CGI.escapeHTML(isp["isp"]) + ":" + isp["count"].to_s + "::"
-  isp["link_html"].each {|l| isp_html = isp_html + l + "::" }
+  isp["link_html"].each {|l| isp_html += l + "::" }
   isp_html += "</li>"
 end
 isp_html += "</ol>"
+
+antivirus_html = "<ol>"
+$stderr.printf("BEFORE antivirus_html loop, antivirus_mention_counts length:%d\n",antivirus_mention_counts.length)
+PP::pp(antivirus_mention_counts,$stderr)
+
+antivirus_mention_counts.each do |av|
+  antivirus_html += "<li>"
+  $stderr.printf("in antivirus_html loop, av:%s\n",av["av"])
+  antivirus_html += CGI.escapeHTML(av["av"]) + ":" + av["count"].to_s + "::"
+  av["link_html"].each {|l| antivirus_html += l + "::" }
+  antivirus_html += "</li>"
+end
+antivirus_html += "</ol>"
 
 created_topics = []
 provider_mentions = []
@@ -313,7 +342,7 @@ Content-type: text/html; charset=utf-8
 subject: #{subject}
 Date: #{Time.now.rfc2822}
 
-<h3>TOC</h3>
+<h3>Get Satisfaction Thunderbird Support Report TOC</h3>
 <ul>
 <li><a href="#trending">Trending FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</a></li>
 <li><a href="#repliers">Top Repliers FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}</a></li>
@@ -322,16 +351,22 @@ Date: #{Time.now.rfc2822}
 </ul>
 
 <a name="trending"></a>
-<h3>Trending tags, mail providers, and ISPs</h3>
+<h3>Trending tags, mail providers, anti-virus software and ISPs</h3>
 <h4>Mail Providers</h4>
 #{mailprovider_html}
 <h4>ISPs</h4>
 #{isp_html}
 <h4>Tags</h4>
 #{tag_html}
+<h4>Antivirus</h4>
+#{antivirus_html}
 
 <a name="repliers"></a>
 <h3>Top Repliers</h3>
+<p>
+A big thank-you to all folks (of which 99% are volunteers!) who support Thunderbird on Get Satisfaction and elsewhere on the Internet!
+</p>
+
 <h4>Top Champion and Employee Repliers</h4>
 #{eoc_reply_html}
 <h4>Top NON Champion and Employee Repliers</h4>
