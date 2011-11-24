@@ -21,10 +21,10 @@ def get_html_for_contributors(contributors)
   contributor_reply_html = "<ol>"
   contributors.each do |t|
     contributor_reply_html += "<li>" + t[:num_replies].to_s + ",&nbsp;" + 
-      createLink("http://getsatisfaction.com/people/" + CGI.escapeHTML(t[:author]), t[:author], 24) + "::"
+      createLink("http://getsatisfaction.com/people/" + CGI.escapeHTML(t[:author]), t[:author], 24) + "::\n"
     t[:links].each_with_index do |l,i|
       contributor_reply_html += createLinkWithLinktext(l["url"], l["title"],
-        (i+1).to_s, (i+1).to_s.length) + "::"              
+        (i+1).to_s, (i+1).to_s.length) + "::\n"              
     end
     contributor_reply_html += "</li>"
   end
@@ -164,17 +164,17 @@ end
 active_topics = active_topics.sort_by{|h|h[:reply_count]}
 active_html = ""
 active_topics.reverse.first(20).each do |t|
-  active_html += "<tr><td>"+
-    t[:reply_count].to_s+"</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>::"
+  active_html += "<tr>\n<td>"+
+    t[:reply_count].to_s+"</td>\n<td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td>\n<td>::"
   t[:topic]["tags_array"].each do |tag|
     active_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + CGI.escapeHTML(sanitize_tag(tag)),
-      tag, 16) + "::"              
+      tag, 16) + "::\n"              
   end
-  active_html += "</td><td>::"
-  t[:provider_mentions].each{|p| active_html += CGI.escapeHTML(p[0..15]) + "::" }
-  active_html += "</td><td>::"
-  t[:isp_mentions].each{|isp| active_html += CGI.escapeHTML(isp[0..15]) + "::" }
-  active_html += "</td></tr>"
+  active_html += "</td>\n<td>::"
+  t[:provider_mentions].each{|p| active_html += CGI.escapeHTML(p[0..15]) + "::\n" }
+  active_html += "</td>\n<td>::"
+  t[:isp_mentions].each{|isp| active_html += CGI.escapeHTML(isp[0..15]) + "::\n" }
+  active_html += "</td>\n</tr>"
 end
 
 # find active topics that were updated in the time period
@@ -217,51 +217,49 @@ provider_mention_counts = provider_mention_counts.sort{|p,q|q["count"]<=>p["coun
 isp_mention_counts = isp_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 antivirus_mention_counts = antivirus_mention_counts.sort{|p,q|q["count"]<=>p["count"]}
 
-tag_html = "<ol>"
+tag_html = "<ol>\n"
 sorted_tag_counts.first(20).each do |t|
   tag_html += "<li>" + t[1]["count"].to_s + ", "
   sanitized_tag = sanitize_tag(t[0])
   tag_html +=  
     createLinkWithLinktext("http://getsatisfaction.com/mozilla_messaging/tags/" +
-      CGI.escapeHTML(sanitized_tag), t[0], t[0], 16) + ":" 
+      CGI.escapeHTML(sanitized_tag), t[0], t[0], 16) + ":\n" 
     t[1]["links"].each_with_index do |tag_info,i|
       tag_html += createLinkWithLinktext(tag_info["url"], tag_info["title"],
-        (i+1).to_s, (i+1).to_s.length) + "::"
+        (i+1).to_s, (i+1).to_s.length) + "::\n"
     end
-  tag_html += "</li>"
+  tag_html += "</li>\n"
 end
-tag_html += "</ol>"
+tag_html += "</ol>\n"
 
-mailprovider_html = "<ol>"
+mailprovider_html = "<ol>\n"
 provider_mention_counts.each do |p|
   mailprovider_html += "<li>"
   mailprovider_html +=  CGI.escapeHTML(p["provider"]) + ":" + p["count"].to_s + "::"
-  p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + "::" }
-  mailprovider_html += "</li>"
+  p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + "::\n" }
+  mailprovider_html += "</li>\n"
 end
-mailprovider_html += "</ol>"
+mailprovider_html += "</ol>\n"
 
-isp_html = "<ol>"
+isp_html = "<ol>\n"
 isp_mention_counts.each do |isp|
   isp_html += "<li>"
-  isp_html += CGI.escapeHTML(isp["isp"]) + ":" + isp["count"].to_s + "::"
-  isp["link_html"].each {|l| isp_html += l + "::" }
-  isp_html += "</li>"
+  isp_html += CGI.escapeHTML(isp["isp"]) + ":" + isp["count"].to_s + "::\n"
+  isp["link_html"].each {|l| isp_html += l + "::\n" }
+  isp_html += "</li>\n"
 end
-isp_html += "</ol>"
+isp_html += "</ol>\n"
 
-antivirus_html = "<ol>"
-$stderr.printf("BEFORE antivirus_html loop, antivirus_mention_counts length:%d\n",antivirus_mention_counts.length)
-PP::pp(antivirus_mention_counts,$stderr)
+antivirus_html = "<ol>\n"
 
 antivirus_mention_counts.each do |av|
   antivirus_html += "<li>"
   $stderr.printf("in antivirus_html loop, av:%s\n",av["av"])
-  antivirus_html += CGI.escapeHTML(av["av"]) + ":" + av["count"].to_s + "::"
-  av["link_html"].each {|l| antivirus_html += l + "::" }
-  antivirus_html += "</li>"
+  antivirus_html += CGI.escapeHTML(av["av"]) + ":" + av["count"].to_s + "::\n"
+  av["link_html"].each {|l| antivirus_html += l + "::\n" }
+  antivirus_html += "</li>\n"
 end
-antivirus_html += "</ol>"
+antivirus_html += "</ol>\n"
 
 created_topics = []
 provider_mentions = []
@@ -284,17 +282,17 @@ end
 
 created_html = []
 created_topics.each_with_index do |t,i|
-  row  = "<tr><td>" +
-    (i+1).to_s+".</td><td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td><td>::"
+  row  = "<tr>\n<td>" +
+    (i+1).to_s+".</td>\n<td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td>\n<td>::"
   t[:topic]["tags_array"].each do |tag|
     row  += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" +
-      CGI.escapeHTML(sanitize_tag(tag)), tag, 16) + "::"              
+      CGI.escapeHTML(sanitize_tag(tag)), tag, 16) + "::\n"              
   end
-  row += "</td><td>::"
-  t[:provider_mentions].each{|p| row += CGI.escapeHTML(p[0..15]) + "::" }
-  row += "</td><td>::"
-  t[:isp_mentions].each{|isp| row += CGI.escapeHTML(isp[0..15]) + "::" }
-  row  += "</td></tr>"
+  row += "</td>\n<td>::"
+  t[:provider_mentions].each{|p| row += CGI.escapeHTML(p[0..15]) + "::\n" }
+  row += "</td>\n<td>::"
+  t[:isp_mentions].each{|isp| row += CGI.escapeHTML(isp[0..15]) + "::\n" }
+  row  += "</td>\n</tr>\n"
   created_html.push(row)
 end
 
@@ -338,7 +336,7 @@ content = <<EOF
 From: #{from}
 To: #{email_config['to_address']}
 MIME-Version: 1.0
-Content-type: text/html; charset=utf-8
+content-type: text/html; charset=utf-8
 subject: #{subject}
 Date: #{Time.now.rfc2822}
 
@@ -377,7 +375,7 @@ A big thank-you to all folks (of which 99% are volunteers!) who support Thunderb
 <p>
 <b>Active</b> means topics with replies during FROM:#{ARGV[0]}.#{ARGV[1]}.#{ARGV[2]} TO:#{ARGV[3]}.#{ARGV[4]}.#{ARGV[5]}
 </p>
-<table border="1" bgcolor="gray">
+<table border="1">
 <tr>
 <th>replies</th>
 <th>url</th>
