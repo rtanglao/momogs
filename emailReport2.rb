@@ -21,14 +21,14 @@ def get_html_for_contributors(contributors)
   contributor_reply_html = "<ol>"
   contributors.each do |t|
     contributor_reply_html += "<li>" + t[:num_replies].to_s + ",&nbsp;" + 
-      createLink("http://getsatisfaction.com/people/" + CGI.escapeHTML(t[:author]), t[:author], 24) + "::\n"
+      createLink("http://getsatisfaction.com/people/" + CGI.escapeHTML(t[:author]), t[:author], 24) + ":"
     t[:links].each_with_index do |l,i|
-      contributor_reply_html += createLinkWithLinktext(l["url"], l["title"],
-        (i+1).to_s, (i+1).to_s.length) + "::\n"              
+      contributor_reply_html += createLinkWithLinktext(l["url"], l["title"][0..66],
+        (i+1).to_s, (i+1).to_s.length) + ":"              
     end
-    contributor_reply_html += "</li>"
+    contributor_reply_html += "</li>\n"
   end
-  contributor_reply_html += "</ol>"
+  contributor_reply_html += "</ol>\n"
   return contributor_reply_html
 end
 
@@ -40,13 +40,13 @@ def  increment_num_replies_and_save_topic_link(topic, reply, contributors)
     c[:num_replies] += 1
     existing_link = c[:links].detect{|l|l["url"] == topic["at_sfn"]}
     if existing_link.nil?
-      c[:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"]})
+      c[:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"][0..66]})
     end
   else
     $stderr.printf("DID NOT FIND author:%s! Adding Author and title:%s, setting num_replies to 1\n", 
       author, topic["subject"]) 
     contributor_array = contributors.push({:author => author,:num_replies => 1, :links => []})
-    contributor_array[-1][:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"]})
+    contributor_array[-1][:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"][0..66]})
   end
   return contributors   
 end
@@ -165,15 +165,15 @@ active_topics = active_topics.sort_by{|h|h[:reply_count]}
 active_html = ""
 active_topics.reverse.first(20).each do |t|
   active_html += "<tr>\n<td>"+
-    t[:reply_count].to_s+"</td>\n<td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td>\n<td>::"
+    t[:reply_count].to_s+"</td>\n<td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td>\n<td>:"
   t[:topic]["tags_array"].each do |tag|
     active_html += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" + CGI.escapeHTML(sanitize_tag(tag)),
-      tag, 16) + "::\n"              
+      tag, 16) + ":"              
   end
   active_html += "</td>\n<td>::"
-  t[:provider_mentions].each{|p| active_html += CGI.escapeHTML(p[0..15]) + "::\n" }
-  active_html += "</td>\n<td>::"
-  t[:isp_mentions].each{|isp| active_html += CGI.escapeHTML(isp[0..15]) + "::\n" }
+  t[:provider_mentions].each{|p| active_html += CGI.escapeHTML(p[0..15]) + ":" }
+  active_html += "</td>\n<td>:"
+  t[:isp_mentions].each{|isp| active_html += CGI.escapeHTML(isp[0..15]) + ":" }
   active_html += "</td>\n</tr>"
 end
 
@@ -207,7 +207,7 @@ topicsColl.find({"last_active_at" =>
     else
       tag_counts[tag] = {"count"=> 1, "links" => []}
     end
-    tag_counts[tag]["links"].push({"url" => t["at_sfn"], "title" => t["subject"]})
+    tag_counts[tag]["links"].push({"url" => t["at_sfn"], "title" => t["subject"][0..66]})
   end
 end
 
@@ -223,10 +223,10 @@ sorted_tag_counts.first(20).each do |t|
   sanitized_tag = sanitize_tag(t[0])
   tag_html +=  
     createLinkWithLinktext("http://getsatisfaction.com/mozilla_messaging/tags/" +
-      CGI.escapeHTML(sanitized_tag), t[0], t[0], 16) + ":\n" 
+      CGI.escapeHTML(sanitized_tag), t[0], t[0], 16) + ":" 
     t[1]["links"].each_with_index do |tag_info,i|
       tag_html += createLinkWithLinktext(tag_info["url"], tag_info["title"],
-        (i+1).to_s, (i+1).to_s.length) + "::\n"
+        (i+1).to_s, (i+1).to_s.length) + ":"
     end
   tag_html += "</li>\n"
 end
@@ -234,30 +234,35 @@ tag_html += "</ol>\n"
 
 mailprovider_html = "<ol>\n"
 provider_mention_counts.each do |p|
-  mailprovider_html += "<li>"
-  mailprovider_html +=  CGI.escapeHTML(p["provider"]) + ":" + p["count"].to_s + "::"
-  p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + "::\n" }
-  mailprovider_html += "</li>\n"
+  if p["count"] > 0
+    mailprovider_html += "<li>"
+    mailprovider_html +=  CGI.escapeHTML(p["provider"]) + ":" + p["count"].to_s + ":"
+    p["link_html"].each {|l| mailprovider_html = mailprovider_html + l + ":" }
+    mailprovider_html += "</li>\n"
+  end
 end
 mailprovider_html += "</ol>\n"
 
 isp_html = "<ol>\n"
 isp_mention_counts.each do |isp|
-  isp_html += "<li>"
-  isp_html += CGI.escapeHTML(isp["isp"]) + ":" + isp["count"].to_s + "::\n"
-  isp["link_html"].each {|l| isp_html += l + "::\n" }
-  isp_html += "</li>\n"
+  if isp["count"] > 0 
+    isp_html += "<li>"
+    isp_html += CGI.escapeHTML(isp["isp"]) + ":" + isp["count"].to_s + ":"
+    isp["link_html"].each {|l| isp_html += l + ":" }
+    isp_html += "</li>\n"
+  end
 end
 isp_html += "</ol>\n"
 
 antivirus_html = "<ol>\n"
-
 antivirus_mention_counts.each do |av|
-  antivirus_html += "<li>"
   $stderr.printf("in antivirus_html loop, av:%s\n",av["av"])
-  antivirus_html += CGI.escapeHTML(av["av"]) + ":" + av["count"].to_s + "::\n"
-  av["link_html"].each {|l| antivirus_html += l + "::\n" }
-  antivirus_html += "</li>\n"
+  if av["count"] > 0
+    antivirus_html += "<li>"
+    antivirus_html += CGI.escapeHTML(av["av"]) + ":" + av["count"].to_s + ":"
+    av["link_html"].each {|l| antivirus_html += l + ":" }
+    antivirus_html += "</li>\n"
+  end
 end
 antivirus_html += "</ol>\n"
 
@@ -283,15 +288,15 @@ end
 created_html = []
 created_topics.each_with_index do |t,i|
   row  = "<tr>\n<td>" +
-    (i+1).to_s+".</td>\n<td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td>\n<td>::"
+    (i+1).to_s+".</td>\n<td>"+ createLink(t[:topic]["at_sfn"], t[:topic]["subject"],40) + "</td>\n<td>:"
   t[:topic]["tags_array"].each do |tag|
     row  += createLink("http://getsatisfaction.com/mozilla_messaging/tags/" +
-      CGI.escapeHTML(sanitize_tag(tag)), tag, 16) + "::\n"              
+      CGI.escapeHTML(sanitize_tag(tag)), tag, 16) + ":"              
   end
-  row += "</td>\n<td>::"
-  t[:provider_mentions].each{|p| row += CGI.escapeHTML(p[0..15]) + "::\n" }
-  row += "</td>\n<td>::"
-  t[:isp_mentions].each{|isp| row += CGI.escapeHTML(isp[0..15]) + "::\n" }
+  row += "</td>\n<td>:"
+  t[:provider_mentions].each{|p| row += CGI.escapeHTML(p[0..15]) + ":" }
+  row += "</td>\n<td>:"
+  t[:isp_mentions].each{|isp| row += CGI.escapeHTML(isp[0..15]) + ":" }
   row  += "</td>\n</tr>\n"
   created_html.push(row)
 end
