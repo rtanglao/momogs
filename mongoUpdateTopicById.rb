@@ -44,7 +44,7 @@ id = ARGV[0].to_i
 topic_url = "products/mozilla_thunderbird/topics/" << "%d" % id << ".json" 
 printf(STDERR, "topic_url")
 begin
-  topic = getResponse(topic_url)
+  topic = getResponse(topic_url,{})
 rescue JSON::ParserError
   printf(STDERR, "Parser error in topic:%s\n", topic_url)
   exit
@@ -69,6 +69,12 @@ topic["fulltext"] = ""
 topic["fulltext_with_tags"] = ""
 topic["tags_str"] = "" 
 topic["synthetic_status_journal"] = []
+if topic["is_closed"]
+  closed_at = Time.parse(topic["closed_at"])
+  closed_at = closed_at.utc
+  topic.delete("closed_at")
+  topic["closed_at"] = closed_at
+end
 if verbose_logging
   printf(STDERR, "START*** of topic\n") 
   PP::pp(topic,$stderr)

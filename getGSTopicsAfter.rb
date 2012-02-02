@@ -23,6 +23,12 @@ def getGSTopicsAfter(metrics_start, topicsColl, verbose_logging)
       topic["last_active_at"] = last_active_at
       topic.delete("created_at") 
       topic["created_at"] = created_at
+      if topic["is_closed"]
+        closed_at = Time.parse(topic["closed_at"])
+        closed_at = closed_at.utc
+        topic.delete("closed_at")
+        topic["closed_at"] = closed_at
+      end
 
       if (last_active_at <=> metrics_start) == -1 
         printf(STDERR, "ending getGSTopicsAfter\n")
