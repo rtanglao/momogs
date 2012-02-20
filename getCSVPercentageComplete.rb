@@ -94,14 +94,17 @@ kpi_percentage_complete_last_twelve_months.each do |k_complete|
     if sj && (sj["status_update_time"] <=> metrics_start) >= 0 && 
          (sj["status_update_time"] <=> metrics_stop) == -1
       $stderr.printf("SOLVED topic in time period title:%s url:%s\n",t["subject"].gsub(","," - ")[0..79],t["at_sfn"])
-        k_complete["num_topics_completed"] += 1
+      k_complete["num_topics_completed"] += 1
     end
   end
-  k_complete["percentage_completed"] = k_complete["num_topics_completed"] / k_complete["num_topics_created"]
+  k_complete["percentage_completed"] = 100.0 * k_complete["num_topics_completed"] / k_complete["num_topics_created"]
+  $stderr.printf("PERCENTAGE:%f, completed:%d, complete:%d\n", k_complete["percentage_completed"],
+    k_complete["num_topics_completed"], k_complete["num_topics_created"])
   csv_percentage_complete.push({"three_letter_month_name"=>k_complete["three_letter_month_name"],
                                  "percentage_completed" => k_complete["percentage_completed"]})
-  end
+end
 
-pp csv_percentage_complete
-
+csv_percentage_complete.reverse.each do |c| 
+  printf "%s,%f\n", c["three_letter_month_name"], c["percentage_completed"]
+end
 
