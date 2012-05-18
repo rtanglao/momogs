@@ -108,9 +108,9 @@ employees_or_champions.first(5).each do |eoc|
   pp eoc[:links]
 end
 
-g.labels = {4 => end_hours[0].to_s, 8  => end_hours[1].to_s, 
-            12 => end_hours[2].to_s, 16 => end_hours[3].to_s, 
-            20 => end_hours[4].to_s, 24 => end_hours[5].to_s}
+g.labels = {3 => end_hours[0].to_s, 7  => end_hours[1].to_s, 
+            11 => end_hours[2].to_s, 15 => end_hours[3].to_s, 
+            19 => end_hours[4].to_s, 23 => end_hours[5].to_s}
 
 g.write('eoc_replies.png')
 
