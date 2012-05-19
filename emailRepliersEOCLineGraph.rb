@@ -1,15 +1,14 @@
 #!/usr/bin/env ruby
 require 'rubygems'
 require 'json'
-require 'net/http'
-require 'pp'
 require 'time'
-require 'tlsmail'
 require 'date'
 require 'parseconfig'
 require 'mongo'
 require 'cgi'
 require 'gruff'
+require 'gmail'
+#require 'pony'
 
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
@@ -34,6 +33,32 @@ metrics_stop = Time.utc(t.year,t.month, t.day, t.hour, 0) - 1
 metrics_start = metrics_stop - (23 * 3600) - (59 * 60) - 59
 $stderr.printf("from:%s to:%s\n", metrics_start.to_s, metrics_stop.to_s)
 
+def createLinkWithLinktext(url, title, linktext, length)
+  return "<a title=\""+CGI.escapeHTML(title)+"\""+
+     " href=\""+ url + "\">"+CGI.escapeHTML(linktext[0..length-1])+"</a>"
+end
+
+def createLink(url, title, length)
+  return "<a title=\""+CGI.escapeHTML(title) + "\""+
+     " href=\""+ url + "\">" + CGI.escapeHTML(title[0..length-1]) + "</a>"
+end
+
+def get_html_for_contributors(contributors)
+  contributor_reply_html = "<ol>"
+  contributors.each do |t|
+    contributor_reply_html += "<li>" + t[:num_replies].to_s + ",&nbsp;" + 
+      createLink("http://getsatisfaction.com/people/" + CGI.escapeHTML(t[:author]), t[:author], 24) + ":"
+    t[:links] = t[:links].sort{|b,c|b[:id]<=>c[:id]}
+    t[:links].each_with_index do |l,i|
+      contributor_reply_html += createLinkWithLinktext(l["url"], l["title"][0..66],
+        (i+1).to_s, (i+1).to_s.length) + ":"              
+    end
+    contributor_reply_html += "</li>\n"
+  end
+  contributor_reply_html += "</ol>\n"
+  return contributor_reply_html
+end
+
 def  increment_num_replies_and_save_topic_link(topic, reply, contributors)
   author = reply["author"]["canonical_name"]
   c = contributors.detect {|c|c[:author] == author}
@@ -43,13 +68,13 @@ def  increment_num_replies_and_save_topic_link(topic, reply, contributors)
     c[:reply_hh][reply["created_at"].utc.hour] += 1
     existing_link = c[:links].detect{|l|l["url"] == topic["at_sfn"]}
     if existing_link.nil?
-      c[:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"][0..66]})
+      c[:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"][0..66], :id => topic["id"]})
     end
   else
     $stderr.printf("DID NOT FIND author:%s! Adding Author and title:%s, setting num_replies to 1\n", 
       author, topic["subject"]) 
     contributor_array = contributors.push({:author => author,:num_replies => 1, :links => [], :reply_hh => Array.new(24,0) })
-    contributor_array[-1][:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"][0..66]})
+    contributor_array[-1][:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"][0..66],  :id => topic["id"]})
     contributor_array[-1][:reply_hh][reply["created_at"].utc.hour] = 1
   end
   return contributors   
@@ -67,7 +92,7 @@ topicsColl.find({"reply_array" => { "$elemMatch"  => { "created_at" =>  {"$gte" 
     $stderr.printf("CHECKING reply:%d by author:%s\n", r["id"],r["author"]["canonical_name"])
     if ((created_at <=> metrics_start) >= 0) && ((created_at <=> metrics_stop) <= 0)
       author = r["author"]["canonical_name"]
-      $stderr.printf("IN time period, author:%s has a reply id:%d\n", author, r["id"])
+      $stderr.printf("IN time period, author:%s has a reply id:%d at:%s\n", author, r["id"], created_at.to_s)
       if  r["author"]["employee"] || r["author"]["champion"]
         employees_or_champions = increment_num_replies_and_save_topic_link(t, r, employees_or_champions)
       end 
@@ -78,8 +103,6 @@ topicsColl.find({"reply_array" => { "$elemMatch"  => { "created_at" =>  {"$gte" 
 end
 
 employees_or_champions = employees_or_champions.sort{|b,c|c[:num_replies]<=>b[:num_replies]}
-
-pp employees_or_champions.first(10)
 
 data = []
 legend = []
@@ -93,7 +116,6 @@ start_hour = metrics_stop.utc.hour
 $stderr.printf("start_hour:%d\n", start_hour)
 end_hours = [ start_hour, (start_hour - 4) % 24, (start_hour - 8) % 24, (start_hour - 12) % 24, 
                    (start_hour - 16) % 24, (start_hour - 20) % 24].reverse
-pp end_hours
 
 employees_or_champions.first(5).each do |eoc|
   $stderr.printf("author:%s\n", eoc[:author])
@@ -105,20 +127,54 @@ employees_or_champions.first(5).each do |eoc|
   end
   sorted_eoc.reverse!
   g.data(eoc[:author], sorted_eoc)
-  pp eoc[:links]
 end
 
 g.labels = {3 => end_hours[0].to_s, 7  => end_hours[1].to_s, 
             11 => end_hours[2].to_s, 15 => end_hours[3].to_s, 
             19 => end_hours[4].to_s, 23 => end_hours[5].to_s}
 
-g.write('eoc_replies.png')
+g.write('eoc_hourly_replies.png')
+
+eoc_reply_html = get_html_for_contributors(employees_or_champions.first(5))
+email_config = ParseConfig.new('email2.conf').params
+from = email_config['from_address']
+to_address = email_config['to_address'].split(",")
+p = email_config['p']
+# Pony.mail({
+#   :to => to_address,
+#   :subject =>  "EOC Replies " + metrics_start.year.to_s + "/" + metrics_start.month.to_s + "/" + metrics_start.day.to_s +
+#     " " + metrics_start.hour.to_s + ":00:00" +
+#     "TO:" +  metrics_stop.year.to_s + "/" + metrics_stop.month.to_s + "/" + metrics_stop.day.to_s + " " +
+#     metrics_stop.hour.to_s + ":59:59", 
+#   :html_body => eoc_reply_html + "\n#eochourlyreplies #thunderbird #mozilla #thunderbirdmetrics ",
+#   :attachments => {"eoc_hourly_replies.png" => File.read("eoc_hourly_replies.png")},
+#   :via => :smtp,
+#   :via_options => {
+#     :address              => 'smtp.gmail.com',
+#     :port                 => '587',
+#     :enable_starttls_auto => true,
+#     :user_name            => from,
+#     :password             => p,
+#     :authentication       => :plain, # :plain, :login, :cram_md5, no auth by default
+# :domain               => "localhost.localdomain"
+#   }
+# })
+subject_str = "EOC Replies " + metrics_start.year.to_s + "/" + metrics_start.month.to_s + "/" + metrics_start.day.to_s +
+      " " + metrics_start.hour.to_s + ":00:00" +
+      "TO:" +  metrics_stop.year.to_s + "/" + metrics_stop.month.to_s + "/" + metrics_stop.day.to_s + " " +
+      metrics_stop.hour.to_s + ":59:59"    
+Gmail.connect(from, p) do |gmail|
+  gmail.deliver do
+    to to_address
+    subject subject_str
+    html_part do
+      body eoc_reply_html + "<br>\n#eochourlyreplies \n#thunderbird \n#mozilla \n#thunderbirdmetrics "
+    end
+    add_file "eoc_hourly_replies.png"
+  end
+end
 
 
-# email_config = ParseConfig.new('email2.conf').params
-# from = email_config['from_address']
-# to = email_config['to_address'].split(",")
-# p = email_config['p']
  
 
 
