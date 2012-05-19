@@ -107,10 +107,11 @@ data = []
 legend = []
 
 g = Gruff::Line.new
+g.theme_pastel
 g.title = "NONEOC Replies " + metrics_start.year.to_s + "/" + metrics_start.month.to_s + "/" + metrics_start.day.to_s +
-           " " + metrics_start.hour.to_s + ":00:00" +
+           " " + metrics_start.hour.to_s + ":00" +
            "TO:" +
-           metrics_stop.hour.to_s + ":59:59"
+           metrics_stop.hour.to_s + ":59"
 start_hour = metrics_stop.utc.hour
 $stderr.printf("start_hour:%d\n", start_hour)
 end_hours = [ start_hour, (start_hour - 4) % 24, (start_hour - 8) % 24, (start_hour - 12) % 24, 
