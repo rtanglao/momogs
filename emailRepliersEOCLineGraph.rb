@@ -8,7 +8,6 @@ require 'mongo'
 require 'cgi'
 require 'gruff'
 require 'gmail'
-#require 'pony'
 
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
@@ -140,25 +139,6 @@ email_config = ParseConfig.new('email2.conf').params
 from = email_config['from_address']
 to_address = email_config['to_address'].split(",")
 p = email_config['p']
-# Pony.mail({
-#   :to => to_address,
-#   :subject =>  "EOC Replies " + metrics_start.year.to_s + "/" + metrics_start.month.to_s + "/" + metrics_start.day.to_s +
-#     " " + metrics_start.hour.to_s + ":00:00" +
-#     "TO:" +  metrics_stop.year.to_s + "/" + metrics_stop.month.to_s + "/" + metrics_stop.day.to_s + " " +
-#     metrics_stop.hour.to_s + ":59:59", 
-#   :html_body => eoc_reply_html + "\n#eochourlyreplies #thunderbird #mozilla #thunderbirdmetrics ",
-#   :attachments => {"eoc_hourly_replies.png" => File.read("eoc_hourly_replies.png")},
-#   :via => :smtp,
-#   :via_options => {
-#     :address              => 'smtp.gmail.com',
-#     :port                 => '587',
-#     :enable_starttls_auto => true,
-#     :user_name            => from,
-#     :password             => p,
-#     :authentication       => :plain, # :plain, :login, :cram_md5, no auth by default
-# :domain               => "localhost.localdomain"
-#   }
-# })
 subject_str = "EOC Replies " + metrics_start.year.to_s + "/" + metrics_start.month.to_s + "/" + metrics_start.day.to_s +
       " " + metrics_start.hour.to_s + ":00:00" +
       "TO:" +  metrics_stop.year.to_s + "/" + metrics_stop.month.to_s + "/" + metrics_stop.day.to_s + " " +
