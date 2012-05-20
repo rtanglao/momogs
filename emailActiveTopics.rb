@@ -46,7 +46,7 @@ topicsColl.find({"reply_array" => { "$elemMatch"  => { "created_at" =>  {"$gte" 
       existing_active_topic = active_topics.detect {|t1|t1[:url] == url}
       if existing_active_topic.nil?
         $stderr.printf("topic url:%s id:%d,  subject:%s\n", url, t["id"], t["subject"])
-        active_topics.push({:url => url, :title => t["subject"][0..66], :id => t["id"],
+        active_topics.push({:url => url, :title => t["subject"], :id => t["id"],
                              :num_replies => 1, :reply_hh => Array.new(24,0) })
         active_topics[-1][:reply_hh][created_at.utc.hour] = 1
       else
@@ -72,7 +72,7 @@ $stderr.printf("start_hour:%d\n", start_hour)
 end_hours = [ start_hour, (start_hour - 4) % 24, (start_hour - 8) % 24, (start_hour - 12) % 24, 
                    (start_hour - 16) % 24, (start_hour - 20) % 24].reverse
 
-active_topics.first(3).each do |t|
+active_topics.first(5).each do |t|
   $stderr.printf("url:%s\n", t[:url])
   sorted_reply_count = []
   start_hour_index = start_hour
@@ -91,7 +91,7 @@ g.labels = {3 => end_hours[0].to_s, 7  => end_hours[1].to_s,
 g.write('active_hourly_topics.png')
 
 active_topics_html = "<ol>"
-active_topics.first(3).each do |t|
+active_topics.first(5).each do |t|
   active_topics_html += "<li>" + t[:num_replies].to_s + ",&nbsp;" + 
     createLink(t[:url], t[:title], 80)
   active_topics_html += "</li>\n"
@@ -111,7 +111,7 @@ Gmail.connect(from, p) do |gmail|
     to to_address
     subject subject_str
     html_part do
-      body active_topics_html + "<br>\n#hourlyTop3ActiveTopics \n#thunderbird \n#mozilla \n#thunderbirdmetrics "
+      body active_topics_html + "<br>\n#hourlyTop5ActiveTopics \n#thunderbird \n#mozilla \n#thunderbirdmetrics "
     end
     add_file "active_hourly_topics.png"
   end
