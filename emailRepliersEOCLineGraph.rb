@@ -5,9 +5,11 @@ require 'time'
 require 'date'
 require 'parseconfig'
 require 'mongo'
-require 'cgi'
 require 'gruff'
 require 'gmail'
+require 'createLinkFunctions.rb'
+require 'getContributorHtml.rb'
+require 'incrementNumRepliesAndSaveTopicLink.rb'
 
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in  ENV: 'MONGO_HOST'") if !MONGO_HOST
@@ -31,53 +33,6 @@ t = Time.now.gmtime
 metrics_stop = Time.utc(t.year,t.month, t.day, t.hour, 0) - 1
 metrics_start = metrics_stop - (23 * 3600) - (59 * 60) - 59
 $stderr.printf("from:%s to:%s\n", metrics_start.to_s, metrics_stop.to_s)
-
-def createLinkWithLinktext(url, title, linktext, length)
-  return "<a title=\""+CGI.escapeHTML(title)+"\""+
-     " href=\""+ url + "\">"+CGI.escapeHTML(linktext[0..length-1])+"</a>"
-end
-
-def createLink(url, title, length)
-  return "<a title=\""+CGI.escapeHTML(title) + "\""+
-     " href=\""+ url + "\">" + CGI.escapeHTML(title[0..length-1]) + "</a>"
-end
-
-def get_html_for_contributors(contributors)
-  contributor_reply_html = "<ol>"
-  contributors.each do |t|
-    contributor_reply_html += "<li>" + t[:num_replies].to_s + ",&nbsp;" + 
-      createLink("http://getsatisfaction.com/people/" + CGI.escapeHTML(t[:author]), t[:author], 24) + ":"
-    t[:links] = t[:links].sort{|b,c|b[:id]<=>c[:id]}
-    t[:links].each_with_index do |l,i|
-      contributor_reply_html += createLinkWithLinktext(l["url"], l["title"][0..66],
-        (i+1).to_s, (i+1).to_s.length) + ":"              
-    end
-    contributor_reply_html += "</li>\n"
-  end
-  contributor_reply_html += "</ol>\n"
-  return contributor_reply_html
-end
-
-def  increment_num_replies_and_save_topic_link(topic, reply, contributors)
-  author = reply["author"]["canonical_name"]
-  c = contributors.detect {|c|c[:author] == author}
-  if !c.nil?
-    $stderr.printf("FOUND author:%s! Incrementing num_replies:%d\n", author,c[:num_replies]) 
-    c[:num_replies] += 1
-    c[:reply_hh][reply["created_at"].utc.hour] += 1
-    existing_link = c[:links].detect{|l|l["url"] == topic["at_sfn"]}
-    if existing_link.nil?
-      c[:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"][0..66], :id => topic["id"]})
-    end
-  else
-    $stderr.printf("DID NOT FIND author:%s! Adding Author and title:%s, setting num_replies to 1\n", 
-      author, topic["subject"]) 
-    contributor_array = contributors.push({:author => author,:num_replies => 1, :links => [], :reply_hh => Array.new(24,0) })
-    contributor_array[-1][:links].push({"url"=> topic["at_sfn"], "title" => topic["subject"][0..66],  :id => topic["id"]})
-    contributor_array[-1][:reply_hh][reply["created_at"].utc.hour] = 1
-  end
-  return contributors   
-end
 
 employees_or_champions = []
 
