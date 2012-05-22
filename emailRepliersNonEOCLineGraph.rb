@@ -58,11 +58,8 @@ end
 
 non_employees_or_champions = non_employees_or_champions.sort{|b,c|c[:num_replies]<=>b[:num_replies]}
 
-data = []
-legend = []
-
 g = Gruff::Line.new
-g.theme_pastel
+g.theme_odeo
 g.title = "NONEOC Replies " + metrics_start.year.to_s + "/" + metrics_start.month.to_s + "/" + metrics_start.day.to_s +
            " " + metrics_start.hour.to_s + ":00" +
            "TO:" +
