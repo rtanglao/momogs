@@ -88,7 +88,7 @@ g.labels = {3 => end_hours[0].to_s, 7  => end_hours[1].to_s,
 g.write('non_eoc_hourly_replies.png')
 
 non_eoc_reply_html = get_html_for_contributors(non_employees_or_champions.first(5))
-email_config = ParseConfig.new('email2.conf').params
+email_config = ParseConfig.new('emailgraphicblog.conf').params
 from = email_config['from_address']
 to_address = email_config['to_address'].split(",")
 p = email_config['p']

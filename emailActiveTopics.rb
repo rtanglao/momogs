@@ -98,7 +98,7 @@ active_topics.first(5).each do |t|
 end
 active_topics_html += "</ol>\n"
 
-email_config = ParseConfig.new('email2.conf').params
+email_config = ParseConfig.new('emailgraphicblog.conf').params
 from = email_config['from_address']
 to_address = email_config['to_address'].split(",")
 p = email_config['p']
