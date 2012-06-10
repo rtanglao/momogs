@@ -101,6 +101,7 @@ Gmail.connect(from, p) do |gmail|
     to to_address
     subject subject_str
     html_part do
+      content_type 'text/html; charset=UTF-8'
       body non_eoc_reply_html + "<br>\n#NONeochourlyreplies \n#thunderbird \n#mozilla \n#thunderbirdmetrics "
     end
     add_file "non_eoc_hourly_replies.png"
