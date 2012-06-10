@@ -88,6 +88,7 @@ g.labels = {3 => end_hours[0].to_s, 7  => end_hours[1].to_s,
 g.write('non_eoc_hourly_replies.png')
 
 non_eoc_reply_html = get_html_for_contributors(non_employees_or_champions.first(5))
+non_eoc_reply_html = non_eoc_reply_html.gsub(/[\x80-\xff]/,"")
 email_config = ParseConfig.new('emailgraphicblog.conf').params
 from = email_config['from_address']
 to_address = email_config['to_address'].split(",")
@@ -101,7 +102,6 @@ Gmail.connect(from, p) do |gmail|
     to to_address
     subject subject_str
     html_part do
-      content_type 'text/html; charset=UTF-8'
       body non_eoc_reply_html + "<br>\n#NONeochourlyreplies \n#thunderbird \n#mozilla \n#thunderbirdmetrics "
     end
     add_file "non_eoc_hourly_replies.png"
