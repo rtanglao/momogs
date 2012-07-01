@@ -6,6 +6,7 @@ require 'time'
 require 'date'
 require 'mongo'
 require 'pp'
+require 'launchy'
 
 MONGO_HOST = ENV["MONGO_HOST"]
 raise(StandardError,"Set Mongo hostname in ENV: 'MONGO_HOST'") if !MONGO_HOST
@@ -23,8 +24,9 @@ if !auth
 end
 topicsColl = db.collection("topics")
 authors = []
-topics = topicsColl.find({"subject" => /[êửáạướáĐôảôệ]/u}, 
+topics = topicsColl.find({"subject" => /[ửạướĐảôệ]/u}, 
                          :fields => ["author", "subject"])
 topics.each {|t| authors = authors | t["author"]["at_sfn"].split}
+authors.each {|a| Launchy.open( a, options = {} )}
 pp authors
 
