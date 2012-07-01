@@ -23,10 +23,10 @@ if !auth
 end
 print "connected\n"
 topicsColl = db.collection("topics")
-t = topicsColl.find({"subject" => /[êửáạướáĐôảôệ]/u}).count()
-print "after find\n"
-if t == nil
-  printf("t is nil\n")
-end
-printf("t:%d\n", t)
-# pp t["subject"]
+authors = []
+topics = topicsColl.find({"subject" => /[êửáạướáĐôảôệ]/u}, 
+                         :fields => ["author", "subject"])
+topics.each {|t| authors.push(t["author"]["at_sfn"])}
+authors.uniq!
+pp authors
+
