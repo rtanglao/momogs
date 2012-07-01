@@ -21,12 +21,10 @@ if !auth
   raise(StandardError, "Couldn't authenticate, exiting")
   exit
 end
-print "connected\n"
 topicsColl = db.collection("topics")
 authors = []
 topics = topicsColl.find({"subject" => /[êửáạướáĐôảôệ]/u}, 
                          :fields => ["author", "subject"])
-topics.each {|t| authors.push(t["author"]["at_sfn"])}
-authors.uniq!
+topics.each {|t| authors = authors | t["author"]["at_sfn"].split}
 pp authors
 
