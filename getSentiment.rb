@@ -27,15 +27,7 @@ alchemyObj = AlchemyAPI.new()
 # Load the API key from disk.
 alchemyObj.loadAPIKey("api_key.txt")
 
-url = id = ARGV[0]
-# Get sentiment for a web URL.
-# result = alchemyObj.URLGetTextSentiment(url);
-# puts result
-
-# # Retrieve targeted sentiment
-# result = alchemyObj.URLGetTargetedSentiment(url, "Walmart", AlchemyAPI::OutputMode::XML, tsparamObj);
-#result = alchemyObj.URLGetRankedKeywords(url, AlchemyAPI::OutputMode::JSON, kparamObj)
-# puts result
+url = ARGV[0]
 
 # Create a parameters object.
 kparamObj = AlchemyAPI_KeywordParams.new()
