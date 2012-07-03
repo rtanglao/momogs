@@ -4,7 +4,7 @@ require 'json'
 require 'time'
 require 'date'
 require 'mongo'
-require '../AlchemyAPI.rb'
+require 'AlchemyAPI.rb'
 require 'pp'
 
 MONGO_HOST = ENV["MONGO_HOST"]
@@ -22,10 +22,10 @@ raise(StandardError, "Couldn't authenticate, exiting") if !db.authenticate(MONGO
 topicsColl = db.collection("topics")
 
 # Create an AlchemyAPI object.
-alchemyObj = AlchemyAPI.new();
+alchemyObj = AlchemyAPI.new()
 
 # Load the API key from disk.
-alchemyObj.loadAPIKey("api_key.txt");
+alchemyObj.loadAPIKey("api_key.txt")
 
 url = id = ARGV[0]
 # Get sentiment for a web URL.
@@ -34,21 +34,19 @@ url = id = ARGV[0]
 
 # # Retrieve targeted sentiment
 # result = alchemyObj.URLGetTargetedSentiment(url, "Walmart", AlchemyAPI::OutputMode::XML, tsparamObj);
+#result = alchemyObj.URLGetRankedKeywords(url, AlchemyAPI::OutputMode::JSON, kparamObj)
 # puts result
 
 # Create a parameters object.
-kparamObj = AlchemyAPI_KeywordParams.new();
+kparamObj = AlchemyAPI_KeywordParams.new()
 
 # Enable keyword-targeted sentiment.
-kparamObj.setSentiment(1);
+kparamObj.setSentiment(1)
 
 # Retrieve keywords with keyword-targeted sentiment.
-result = alchemyObj.URLGetRankedKeywords(url, AlchemyAPI::OutputMode::JSON, kparamObj);
+result = alchemyObj.URLGetRankedKeywords(url, AlchemyAPI::OutputMode::JSON, kparamObj)
 pp result
-printf("Just keywords\n");
-pp result["status"]
-print result
-pp result["\r\n    \"status\""]
+
 
  
 
