@@ -47,7 +47,6 @@ topics_found = 0
  topicsColl.find(query,:fields => ["at_sfn", "created_at", "tags_str", "status"]).sort(
      [["created_at", Mongo::ASCENDING]]).each do |t| 
    Launchy.open( t["at_sfn"], options = {} )  
-   pp t["tags_str"]
    topics_found += 1  
  end #topicsColl.find
  printf "num topics found:%d\n", topics_found
