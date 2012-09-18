@@ -74,6 +74,7 @@ while true
       printf(STDERR, "topic created after METRICS STOP so skipping getGSTopicsAfter\n")
       next
     end
+    $stderr.printf("url:%s tagged:%s\n", topic["at_sfn"], tag)
     topic["tags_array"] = []
     topic["tag_id_array"] = []
     topic["reply_id_array"] = []

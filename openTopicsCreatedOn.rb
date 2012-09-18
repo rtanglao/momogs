@@ -2,6 +2,7 @@
 require 'rubygems'
 require 'json'
 require 'pp'
+require 'awesome_print'
 require 'time'
 require 'date'
 require 'mongo'
@@ -41,7 +42,9 @@ metrics_stop = Time.utc(ARGV[0], ARGV[1], ARGV[2], 23, 59, 59)
 metrics_stop += 1
 query = {"created_at" => {"$gte" => metrics_start, "$lt" => metrics_stop}}
 query["status"]  = { "$nin" => ["complete", "rejected"]} if remove_closed
-query["tags_str"] = { "$not" => /rtprocessed/ } if remove_rtprocessed
+query["tags_str"] = { "$not" => Regexp.new("rtprocessed") } if remove_rtprocessed
+PP.pp(query,STDERR)
+p query["created_at"]["$gte"]
 
 topics_found = 0
  topicsColl.find(query,:fields => ["at_sfn", "created_at", "tags_str", "status"]).sort(
