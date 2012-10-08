@@ -4,7 +4,7 @@ require 'json'
 require 'pp'
 require 'time'
 require 'date'
-require 'getGSResponse'
+require 'getGSResponseTyphoeus'
 
 # https://gist.github.com/3842641
 if not defined?(Ocra)
