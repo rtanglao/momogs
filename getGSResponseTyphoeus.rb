@@ -13,3 +13,9 @@ def getResponse(url, params)
   return JSON.parse(result.body)
 end
 
+def getURLResponse(url, params)
+  result = Typhoeus::Request.get(url,
+                                 :username => GS_USER, :password => GS_PASSWORD, 
+                                 :params => {:format => :json, :params => params })
+  return JSON.parse(result.body)
+end
