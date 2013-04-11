@@ -30,10 +30,8 @@ else
   verbose_logging = false
 end
 
-while true
-  metrics_start = Time.now() - (30 * 60) # 30 minutes
-  $stderr.printf("POLLING at:%s going back 30 minutes\n", Time.now)
-  getGSTopicsAfter(metrics_start, topicsColl, verbose_logging)
-  $stderr.printf("SLEEPING at:%s for 15 minutes\n", Time.now)
-  sleep(15 * 60) # 15 minutes
-end
+metrics_start = Time.now() - (30 * 60) # 30 minutes
+$stderr.printf("POLLING at:%s going back 30 minutes\n", Time.now)
+getGSTopicsAfter(metrics_start, topicsColl, verbose_logging)
+$stderr.printf("SLEEPING at:%s for 15 minutes\n", Time.now)
+
