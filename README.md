@@ -46,7 +46,7 @@ e.g. for Thunderbird 5 here's a sample search ("-r" is a comma separated list of
     -r tb5, "tb 5","thunderbird5","thunderbird 5",beta 
     -s "tb 5",tb5,thunderbird5,"thunderbird 5","beta feedback",50,tb5,"tb 5",beta
     
-## Change status of a topic
+## HOW TO Change status of a topic
 
 from https://getsatisfaction.com/getsatisfaction/topics/is_it_possible_to_change_the_author_of_a_topic
 
@@ -55,3 +55,12 @@ from https://getsatisfaction.com/getsatisfaction/topics/is_it_possible_to_change
     https://api.getsatisfaction.com/topics/5438709/status.json
 
     And the parameters look like: {"status": "complete"} 
+
+## HOW TO modify a topic using HTTP PUT
+
+from https://getsatisfaction.com/getsatisfaction/topics/how_do_i_modify_a_topic_with_the_api
+
+     The URL to modify a topic with a put request is https: //api.getsatisfaction.com/topics/$id_or_slug
+     
+
+
