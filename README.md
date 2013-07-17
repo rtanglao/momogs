@@ -61,6 +61,18 @@ from https://getsatisfaction.com/getsatisfaction/topics/is_it_possible_to_change
 from https://getsatisfaction.com/getsatisfaction/topics/how_do_i_modify_a_topic_with_the_api
 
      The URL to modify a topic with a put request is https: //api.getsatisfaction.com/topics/$id_or_slug
-     
 
+## HOW TO determine most recent activity since the GetSatisfaction REST API does not return correct status for the "most_recent_activity" field
+
+from https://getsatisfaction.com/getsatisfaction/topics/getsatisfaction_rest_api_do_not_return_correct_status_for_most_recent_activity_field
+
+### BUG
+
+At the moment, if the topic has being commented the "most_recent_activity" field still show as "create" 
+rather then "comment
+
+### WORKAROUND
+
+ You can use the reply_count and follower_count to get the exact reply and follower counts and see if they have changed as a 
+ way to get the activity performed on the topic.
 
